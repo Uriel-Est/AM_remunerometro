@@ -20,7 +20,7 @@ A família e o CBO são usados para **filtros encadeados no dashboard**, mas *n�
 
 ## Fontes
 
-- Sete arquivos de vínculos da RAIS Bronze 2025, em `data/bronze/rais_publica/2025/`, `rais_vinc_pub_*_2025.parquet` conforme a lista fechada no script 01.
+- Sete arquivos de vínculos da RAIS Bronze 2025, em `data/bronze/rais_publica/2025/`, `rais_vinc_pub_*_2025.parquet` (indisponíveis neste repositório) conforme a lista fechada no script 01.
 - Tipologia municipal rural-urbana do IBGE, planilha `data/Tipologia_municipal_rural_urbano.xlsx`, coluna `CD_GCMUN` (7 dígitos) e `TIPO`. Para o cruzamento, usam-se os primeiros 6 dígitos.
 - As famílias de CBO e cinco CBOs adicionais estão explicitados no script 01. Alguns rótulos de mercado (BI, UX, engenharia de dados) são **aproximações**, não equivalências oficiais.
 
