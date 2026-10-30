@@ -115,7 +115,7 @@ Microdados Parquet (Bronze, Silver, Gold e Analysis), tabelas de resultados pote
 - [x] Associar tipologia IBGE e UF do estabelecimento.
 - [x] Consolidar extração e conversão salarial no script 01.
 - [x] Preparar script 03 e preservar auditoria 02.
-- [ ] Reexecutar fluxo oficial `01 → 03 → 02` e validar contagens e salários.
+- [ ] Reexecutar fluxo oficial `01 → 02 → 03` e validar contagens e salários.
 - [ ] Incorporar notebook modelo do professor e partição do laboratório.
 - [ ] Treinar baseline, MQO, Ridge e Lasso em cada especificação.
 - [ ] Avaliar validação e teste sem vazamento.
