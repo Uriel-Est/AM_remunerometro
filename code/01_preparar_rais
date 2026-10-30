@@ -1,4 +1,4 @@
-"""REMUNERÔMETRO — preparação exploratória RAIS Bronze 2025 (versão 3 + correção de escala).
+"""REMUNERÔMETRO — preparação consolidada da RAIS Bronze 2025 (v3).
 
 - Lê os sete arquivos regionais da RAIS 2025 em lotes; não lê os estabelecimentos,
   o backup .corrompido.bak ou dados de anos anteriores.
@@ -9,12 +9,10 @@
 - NÃO define a amostra de 2.000, partição de teste ou modelo: isso será feito
   depois da escolha final do universo ocupacional, seguindo o laboratório.
 
-CORREÇÃO v3 (integrada): as colunas Vl Rem Média Nom e Vl Rem Dezembro Nom são
-divididas por 100 logo após a leitura, porque a rotina anterior removia o ponto
-decimal e inflava os valores em 100x. A auditoria da correção é gravada em
-auditoria_correcao_remuneracao.csv. A correção pressupõe que AMBAS as colunas
-foram multiplicadas por 100 na versão 3; refazer a auditoria salarial usando o
-parquet de saída, não os arquivos Bronze.
+REMUNERAÇÃO: valores da Bronze foram observados como strings com ponto decimal
+(ex.: '2715.58'). A conversão é direta, sem remoção indiscriminada de pontos
+e sem divisão posterior por 100. Formatos mistos são rejeitados para auditoria.
+Esta versão substitui a extração antiga mais o script de correção por /100.
 
 Nunca execute duas cópias desta rotina simultaneamente.
 """
@@ -39,7 +37,7 @@ ARQUIVO_IBGE = RAIZ / "data" / "Tipologia_municipal_rural_urbano.xlsx"
 SAIDA = RAIZ / "data" / "analysis" / "remunerometro" / "v3"
 LOTE = 50_000
 
-# Universo exploratório AMPLIADO (não é seleção definitiva para o treino).
+# Universo ocupacional acordado; 35 CBOs observados nos dados de 2025.
 # Famílias anteriores, mantidas para comparação com o primeiro diagnóstico:
 FAMILIAS_EXPLORATORIAS = {"2111", "2112", "2123", "2124", "2522", "2525"}
 # Adições explícitas. Alguns códigos são APROXIMAÇÕES de títulos de mercado.
@@ -51,10 +49,7 @@ CBOS_ADICIONAIS = {
     "262420": ("Design de produto (aproximação)", "aproximado"),
 }
 
-# CORREÇÃO v3: escala das remunerações. A rotina antiga removia o ponto decimal
-# de Vl Rem Média Nom e Vl Rem Dezembro Nom; a correção é dividir por 100.
 COLUNAS_REMUNERACAO = ("rem_media_nom", "rem_dez_nom")
-ESCALA_CORRECAO = 100.0
 
 COLUNAS = {
     "CBO 2002 Ocupação - Código": "cbo",
@@ -111,10 +106,29 @@ def codigo(serie, comprimento=None):
     return x
 
 
-def numero_ptbr(serie):
+def numero_remuneracao(serie):
+    """Lê a notação decimal observada na Bronze ('2715.58', '.00').
+
+    Aceita também vírgula decimal simples; não tenta adivinhar formatos
+    com dois separadores. Isso evita erros silenciosos de fator 100.
+    """
     x = serie.astype("string").str.strip()
-    # RAIS usa vírgula decimal e, quando há separador de milhar, ponto.
-    x = x.str.replace(".", "", regex=False).str.replace(",", ".", regex=False)
+    x = x.replace("", pd.NA)
+    validos = x.dropna()
+    ambiguos = validos[validos.str.contains(r"[.,].*[.,]", regex=True)]
+    if not ambiguos.empty:
+        raise ValueError(f"Formato remuneratório ambíguo: {ambiguos.head(5).tolist()}")
+    x = x.str.replace(",", ".", regex=False)
+    out = pd.to_numeric(x, errors="coerce").astype("float64")
+    nao_numericos = x.notna() & out.isna()
+    if nao_numericos.any():
+        raise ValueError(f"Remunerações não numéricas encontradas: {x[nao_numericos].head(5).tolist()}")
+    return out
+
+
+def numero_geral(serie):
+    """Conversão para campos não remuneratórios, preservando ponto decimal."""
+    x = serie.astype("string").str.strip().str.replace(",", ".", regex=False)
     return pd.to_numeric(x, errors="coerce").astype("float64")
 
 
@@ -150,12 +164,7 @@ def gravar_csv(nome, linhas, colunas):
 
 
 def acumular_stats_remuneracao(df, stats):
-    """Registra estatísticas das remunerações ANTES da divisão corretiva.
-
-    Replica exatamente o que a rotina de fix calculava sobre o Parquet
-    'original' inflado, para que auditoria_correcao_remuneracao.csv
-    continue comparável com a versão anterior da correção.
-    """
+    """Acumula salários já convertidos corretamente, sem fator de escala."""
     for campo in COLUNAS_REMUNERACAO:
         serie = df[campo]
         r = stats[campo]
@@ -164,15 +173,13 @@ def acumular_stats_remuneracao(df, stats):
         if len(validos):
             v = validos.to_numpy(dtype=np.float64)
             if not np.all(np.isfinite(v)):
-                raise ValueError(f"{campo}: valores não finitos detectados; interrompendo.")
+                raise ValueError(f"{campo}: valores não finitos detectados")
             r["zeros"] += int((v == 0).sum())
             r["positivos"] += int((v > 0).sum())
             if np.any(v > 0):
-                r["min_positivo_original"] = min(
-                    r["min_positivo_original"], float(v[v > 0].min())
-                )
-            r["max_original"] = max(r["max_original"], float(v.max()))
-            r["soma_original"] += float(v.sum())
+                r["min_positivo"] = min(r["min_positivo"], float(v[v > 0].min()))
+            r["maximo"] = max(r["maximo"], float(v.max()))
+            r["soma"] += float(v.sum())
 
 
 def main():
@@ -193,8 +200,8 @@ def main():
     por_arquivo = []
     stats_rem = {
         c: {"nulos": 0, "zeros": 0, "positivos": 0,
-            "min_positivo_original": float("inf"),
-            "max_original": float("-inf"), "soma_original": 0.0}
+            "min_positivo": float("inf"),
+            "maximo": float("-inf"), "soma": 0.0}
         for c in COLUNAS_REMUNERACAO
     }
 
@@ -213,8 +220,7 @@ def main():
     esquema = pa.schema([pa.field(n, pa.float64() if n in campos_numericos else
                                 pa.bool_() if n in campos_booleanos else pa.string())
                         for n in nomes_saida])
-    print(f"[CORREÇÃO v3] {list(COLUNAS_REMUNERACAO)} serão divididas por {ESCALA_CORRECAO:g}.",
-          flush=True)
+    print("[RAIS] Remunerações lidas diretamente da notação decimal da Bronze.", flush=True)
     try:
         escritor = pq.ParquetWriter(temporario, esquema, compression="zstd")
         for arquivo in arquivos:
@@ -270,15 +276,9 @@ def main():
                 df["cnae"] = codigo(df["cnae"])
                 df["cnae_divisao"] = df["cnae"].str[:2]
                 for campo in campos_numericos:
-                    df[campo] = numero_ptbr(df[campo])
-
-                # ---- CORREÇÃO v3 -------------------------------------------------
-                # 1) estatísticas ANTES da divisão (compatíveis com o fix original);
-                # 2) divisão de Vl Rem Média Nom / Vl Rem Dezembro Nom por 100.
+                    conversor = numero_remuneracao if campo in COLUNAS_REMUNERACAO else numero_geral
+                    df[campo] = conversor(df[campo])
                 acumular_stats_remuneracao(df, stats_rem)
-                for campo in COLUNAS_REMUNERACAO:
-                    df[campo] = df[campo] / ESCALA_CORRECAO
-                # ------------------------------------------------------------------
 
                 for campo in ["escolaridade", "ativo_3112", "sexo", "raca_cor", "tipo_vinculo",
                               "tamanho_estabelecimento", "natureza_juridica"]:
@@ -343,35 +343,30 @@ def main():
         for k, (r, grau) in sorted(CBOS_ADICIONAIS.items())],
         ["cbo", "rotulo_de_mercado", "correspondencia", "nota"])
 
-    # ---- Auditoria da correção de escala (mesmo esquema da rotina de fix) ----
-    linhas_correcao = []
+    # Auditoria de escala em reais, calculada sobre a conversão direta.
+    linhas_remuneracao = []
     for col in COLUNAS_REMUNERACAO:
         r = stats_rem[col]
-        validos = total_selecionado - r["nulos"]
-        mini = r["min_positivo_original"] if math.isfinite(r["min_positivo_original"]) else None
-        maxi = r["max_original"] if math.isfinite(r["max_original"]) else None
-        linhas_correcao.append({
-            "coluna": col, "linhas": total_selecionado, "nulos": r["nulos"],
-            "zeros": r["zeros"], "positivos": r["positivos"],
-            "media_original": r["soma_original"] / validos if validos else None,
-            "media_corrigida": r["soma_original"] / validos / ESCALA_CORRECAO if validos else None,
-            "min_positivo_original": mini,
-            "min_positivo_corrigido": mini / ESCALA_CORRECAO if mini is not None else None,
-            "max_original": maxi,
-            "max_corrigido": maxi / ESCALA_CORRECAO if maxi is not None else None,
+        n_validos = total_selecionado - r["nulos"]
+        minimo = r["min_positivo"] if math.isfinite(r["min_positivo"]) else None
+        maximo = r["maximo"] if math.isfinite(r["maximo"]) else None
+        linhas_remuneracao.append({
+            "coluna": col, "linhas": total_selecionado,
+            "nulos": r["nulos"], "zeros": r["zeros"],
+            "positivos": r["positivos"],
+            "media_reais": r["soma"] / n_validos if n_validos else None,
+            "min_positivo_reais": minimo, "max_reais": maximo,
+            "metodo": "decimal_direto_sem_divisao_por_100",
         })
-    gravar_csv(
-        "auditoria_correcao_remuneracao.csv",
-        linhas_correcao,
-        ["coluna", "linhas", "nulos", "zeros", "positivos", "media_original", "media_corrigida",
-         "min_positivo_original", "min_positivo_corrigido", "max_original", "max_corrigido"],
-    )
+    gravar_csv("auditoria_remuneracao_2025.csv", linhas_remuneracao,
+              ["coluna", "linhas", "nulos", "zeros", "positivos", "media_reais",
+               "min_positivo_reais", "max_reais", "metodo"])
 
     print("\n[CONCLUÍDO]", flush=True)
     print(f"Vínculos lidos: {total_lido:,} | candidatos: {total_selecionado:,}")
     print(f"Parquet: {destino}")
-    print("Remunerações corrigidas (/100); auditoria em auditoria_correcao_remuneracao.csv.")
-    print("ATENÇÃO: recorte exploratório amplo; NÃO é a amostra final de 2.000 vínculos.")
+    print("Remunerações convertidas diretamente; auditoria em auditoria_remuneracao_2025.csv.")
+    print("ATENÇÃO: não é a amostra final de 2.000 vínculos.")
     print("Os CBOs aproximados devem ser revisados antes de escolher o universo do modelo.")
 
 
