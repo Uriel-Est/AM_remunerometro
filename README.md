@@ -1,122 +1,133 @@
-# Remunerômetro — RAIS 2025
+# Remunerômetro | RAIS 2025
 
-Projeto individual de Aprendizagem de Máquina Supervisionada (UFPB/CCSA, 2026.2). O objetivo é estimar a **remuneração nominal de dezembro de 2025** de vínculos formais da RAIS para carreiras quantitativas, tecnologia, dados e áreas profissionais relacionadas. O resultado planejado é um dashboard simples com exploração ocupacional e territorial. **O projeto está na fase de preparação e auditoria; ainda não há modelos treinados ou desempenho de teste.**
+**Projeto individual de Aprendizagem de Máquina Supervisionada — UFPB/CCSA, 2026.2**
 
-## Pergunta aplicada
+O Remunerômetro investiga a remuneração nominal de dezembro de 2025 de vínculos formais em 35 ocupações selecionadas, ligadas à Estatística, áreas quantitativas, tecnologia, dados e profissões relacionadas. O projeto compara duas formas de representar a ocupação em modelos supervisionados e disponibiliza resultados territoriais em um painel interativo.
 
-**Usuário-alvo:** profissional interessado em comparar referências de remuneração formal. **Decisão apoiada:** avaliar referências salariais conforme perfil ocupacional e características do vínculo e do estabelecimento. A RAIS cobre **vínculos formais**, não honorários PJ ou faturamento autônomo. A unidade estatística é o vínculo, não uma pessoa única.
+**[Acessar o dashboard público](https://am-renumorometro-est.streamlit.app/)** · **[Notebook do projeto](notebook/remunerometro.ipynb)** · **[Metodologia](docs/metodologia.md)** · **[Resultados detalhados](docs/resultados_modelo.md)** · **[Dicionário de variáveis](docs/dic_var.md)**
 
-## Duas especificações independentes
+> O painel público apresenta **indicadores agregados do conjunto de teste**, não salários individuais nem novas previsões para perfis informados pelo usuário. A visualização municipal funciona como localizador territorial, e não como estimativa específica de um município.
 
-| | Modelo A — grupos | Modelo B — CBOs |
+## Pergunta de pesquisa
+
+Em que medida o detalhamento da ocupação melhora a predição da remuneração dos vínculos formais? Para responder, foram comparadas duas especificações com os mesmos preditores, exceto pela representação ocupacional:
+
+| Elemento | Modelo A — Famílias | Modelo B — 35 CBOs |
 |---|---|---|
-| Ocupação | One-hot dos **3 grupos**: Estatística formal e quantitativas, TI e dados, Expansão profissional | One-hot dos **35 CBOs** de 6 dígitos |
-| Geografia | UF do **estabelecimento** e tipologia municipal IBGE 2017 | As mesmas |
-| Outras candidatas | Escolaridade, idade, horas contratadas e divisão CNAE | As mesmas |
-| Algoritmos a comparar | Baseline, regressão linear (MQO), Ridge e Lasso | Os mesmos |
-| Resposta | `ln_rem_dez` = logaritmo da remuneração de dezembro | A mesma |
+| Ocupação | Três grupos profissionais | 35 códigos CBO de seis dígitos |
+| Demais atributos | UF do estabelecimento, tipologia IBGE, escolaridade, idade, jornada e divisão CNAE | Os mesmos |
+| Alvo | Log da remuneração nominal de dezembro de 2025 | O mesmo |
+| Modelo selecionado por validação cruzada | Lasso (`alpha=0.001`) | Lasso (`alpha=0.001`) |
 
-A família e o CBO são usados para **filtros encadeados no dashboard**, mas *não* entram juntos como duas codificações ocupacionais redundantes na mesma especificação. A grande região, UF, município e tipologia serão filtros de navegação e visualização. Na especificação preditiva inicial, o município identifica o estabelecimento e a tipologia; não será aplicado one-hot aos milhares de municípios. A informação territorial não identifica necessariamente o lugar de residência nem o local efetivo de trabalho remoto.
+Os grupos profissionais são **Estatística formal e quantitativas**, **TI e dados** e **Expansão profissional**. Os códigos CBO utilizados para aproximar ocupações associadas a BI, UX ou engenharia de dados não constituem equivalências exatas com esses títulos de mercado.
 
-## Fontes
+## Dados e recorte
 
-- Sete arquivos de vínculos da RAIS Bronze 2025, em `data/bronze/rais_publica/2025/`, `rais_vinc_pub_*_2025.parquet` (indisponíveis neste repositório) conforme a lista fechada no script 01.
-- Tipologia municipal rural-urbana do IBGE, planilha `data/Tipologia_municipal_rural_urbano.xlsx`, coluna `CD_GCMUN` (7 dígitos) e `TIPO`. Para o cruzamento, usam-se os primeiros 6 dígitos.
-- As famílias de CBO e cinco CBOs adicionais estão explicitados no script 01. Alguns rótulos de mercado (BI, UX, engenharia de dados) são **aproximações**, não equivalências oficiais.
+A fonte principal é a **RAIS pública de 2025**, complementada pela tipologia rural-urbana municipal do IBGE. A unidade de análise é o **vínculo empregatício**, não a pessoa trabalhadora: uma pessoa pode ter mais de um vínculo. O município e a UF referem-se ao estabelecimento registrado, não necessariamente à residência do trabalhador ou ao local de prestação de serviço remoto.
 
-Resultados anteriores, para referência e conferência depois da regeneração: **91.710.262 vínculos lidos**, **1.635.107 candidatos** e **1.173.463 vínculos elegíveis**, distribuídos entre Expansão (627.020), TI e dados (531.887) e Estatística formal e quantitativas (14.556). Esses totais são resultados de execuções prévias e não dispensam verificar os relatórios produzidos pela versão consolidada.
+A seleção analítica considera vínculos nas 35 CBOs escolhidas, ativos em **31/12/2025**, com remuneração nominal de dezembro positiva. O processamento identificou **1.173.463 vínculos elegíveis**. Os microdados não são distribuídos neste repositório.
 
-## Scripts oficiais
+A remuneração de dezembro na base de origem utiliza ponto decimal, como `2715.58`. O processamento preserva essa escala, sem multiplicar ou dividir arbitrariamente os valores por 100.
 
-| Arquivo | Responsabilidade | Estado |
-|---|---|---|
-| `scripts/01_preparar_rais.py` | Lê Bronze em lotes, seleciona CBOs, cruza tipologia e cria Parquet analítico com **salários já na escala correta** | Pronto; sintaxe verificada |
-| `scripts/03_preparar_modelagem.py` | Filtra ativos em 31/12 e remuneração positiva de dezembro, acrescenta três grupos e grande região, gera base elegível | Pronto; sintaxe verificada |
-| `scripts/02_auditar_base.py` | Audita a **saída do 03** sem alterar os Parquet | Mantido sem alterações; sintaxe verificada |
-| `notebooks/` | Amostragem, treino e comparação das duas especificações | Pendente |
-| `dashboard/app.py` | Interface Streamlit e mapa | Pendente |
+## Estratégia de treinamento e avaliação
 
-> **Ordem efetiva de execução: `01 → 03 → 02`.** Os nomes `02` e `03` foram mantidos conforme solicitado; o `02` audita especificamente a base gerada pelo `03`.
+A população elegível foi dividida em **80% para treinamento e 20% para teste**. Foram sorteados **2.000 vínculos somente da parcela de treinamento**, com semente registrada `5327`. A escolha de algoritmo e hiperparâmetros usou **validação cruzada com cinco dobras** e comparação entre baseline, regressão linear, Ridge e Lasso.
 
-## Conversão salarial — correção consolidada
+O pré-processamento e a codificação one-hot foram incorporados aos pipelines, para evitar vazamento de informações do teste. O conjunto de teste, com **234.693 vínculos**, foi usado na avaliação final após a seleção dos modelos; não foi empregado para novas decisões de ajuste.
 
-Na Bronze, foram observados valores como `'2715.58'`, `'14654.96'` e `'.00'` — **o ponto já é o separador decimal**. Um conversor antigo removia todos os pontos e inflava as remunerações em fator 100, corrigido provisoriamente por divisão posterior.
+### Resultados da avaliação final
 
-Nesta versão, o `01` interpreta diretamente números com ponto decimal e também aceita vírgula decimal simples; interrompe a execução quando identifica formatos com dois separadores (ambíguos), em vez de presumir fator de escala. **Não aplique nenhum script de divisão por 100 à nova saída.** A auditoria de escala passa a se chamar `auditoria_remuneracao_2025.csv`. Antes de substituir resultados locais, confira as estatísticas e valores extremos. Para campos não remuneratórios, a conversão é tratada separadamente.
+| Métrica | Modelo A — Famílias | Modelo B — 35 CBOs |
+|---|---:|---:|
+| Algoritmo escolhido | Lasso | Lasso |
+| `alpha` | 0,001 | 0,001 |
+| MAE da validação cruzada | R$ 4.444,33 | R$ 4.197,62 |
+| **MAE no teste** | **R$ 4.338,33** | **R$ 4.115,23** |
+| RMSE no teste (escala log) | 0,6171 | 0,5865 |
+| Remuneração média observada no teste | R$ 9.230,74 | R$ 9.230,74 |
+| Remuneração média prevista no teste | R$ 7.672,44 | R$ 7.784,68 |
 
-## Preparação local
+A especificação de 35 CBOs apresentou MAE aproximadamente **R$ 223,11 menor**, redução de **5,14%** em relação à especificação por famílias, na avaliação de teste. Isso representa uma comparação preditiva, não um efeito causal do código ocupacional sobre a remuneração. A transformação de previsões em log de volta para reais pode contribuir para subestimação das médias em reais.
 
-Use o **Positron**, abrindo a **raiz** do projeto como diretório atual (`Path.cwd()`). Scripts não usam `argparse`.
+Os resultados completos e diagnósticos por grupos estão descritos em [`docs/resultados_modelo.md`](docs/resultados_modelo.md) e no [`notebook/remunerometro.ipynb`](notebook/remunerometro.ipynb).
+
+## Dashboard interativo
+
+**[Abrir o Remunerômetro no Streamlit](https://am-renumorometro-est.streamlit.app/)**
+
+O dashboard público permite navegar por **modelo, grupo ocupacional, CBO, grande região, UF e tipologia municipal**, além de comparar remuneração observada, remuneração prevista, MAE, viés e quantidade de vínculos nas agregações publicadas. O mapa coroplético, os gráficos e as tabelas são construídos a partir dos arquivos em `data_public/`.
+
+Para melhorar o desempenho, a interface pública abre inicialmente uma visão geral e **carrega a cartografia sob demanda**. O arquivo cartográfico leve é utilizado quando presente; caso contrário, o aplicativo utiliza `territorios.geojson`.
+
+**Diferença entre as versões:** a versão **local**, executada com os dados analíticos externos ao GitHub, permite consultas mais detalhadas por município. A versão **pública** usa apenas resultados agregados por território e CBO: selecionar um município serve para localizar seu território, **não** para divulgar um salário ou erro individualizado para aquela cidade.
+
+Os agregados públicos foram preparados com supressão de células território × CBO com **menos de 30 vínculos**. Essa proteção inicial não garante, isoladamente, ausência de risco de inferência por combinação de filtros. Os totais apresentados no painel público podem diferir dos resultados completos do conjunto de teste, pois refletem somente as células publicadas.
+
+## Estrutura do repositório
+
+```text
+AM_remunerometro/
+├── README.md
+├── requirements.txt
+├── .streamlit/
+│   └── config.toml
+├── code/
+│   ├── 01_preparar_rais.py
+│   ├── 02_preparar_modelagem.py
+│   ├── 03_auditar_base.py
+│   ├── 04_treinamento.py
+│   ├── 05_avaliar.py
+│   ├── 06_cartografia.py
+│   ├── 07_prep_data.py
+│   └── 08_exportar_public_data.py
+├── dashboard/
+│   └── app.py
+├── notebook/
+│   ├── remunerometro.ipynb
+│   └── artefatos/
+├── data_public/
+│   ├── indicadores_agregados.parquet
+│   ├── municipios_catalogo.csv
+│   └── territorios.geojson
+└── docs/
+    ├── metodologia.md
+    ├── resultados_modelo.md
+    └── dic_var.md
+```
+
+O repositório também contém a planilha de tipologia municipal do IBGE. Os nomes acima refletem a organização efetivamente adotada no GitHub; em particular, as pastas são `code/` e `notebook/`, no singular.
+
+## Executar o dashboard público localmente
+
+Requer Python e acesso aos arquivos desta cópia do repositório.
 
 ```bash
 python -m pip install -r requirements.txt
+python -m streamlit run dashboard/app.py
 ```
 
-Estrutura esperada:
+O `dashboard/app.py` do GitHub usa arquivos relativos à raiz do repositório, sem exigir `C:\Users\uriel\data`. Esse `requirements.txt` atende à **aplicação publicada**. Para executar os scripts de treinamento e o notebook analítico, são necessárias também as dependências científicas correspondentes e os dados/artefatos locais.
 
-```text
-remunerometro/
-├── README.md
-├── .gitignore
-├── requirements.txt
-├── scripts/
-│   ├── 01_preparar_rais.py
-│   ├── 02_auditar_base.py
-│   └── 03_preparar_modelagem.py
-├── notebooks/                 # etapa futura
-├── dashboard/                 # etapa futura
-├── docs/                      # documentação e checklist
-├── models/                    # modelos treinados, local
-├── outputs/                   # figuras e tabelas
-└── data/                      # não versionar microdados
-    ├── Tipologia_municipal_rural_urbano.xlsx
-    ├── bronze/rais_publica/2025/
-    └── analysis/remunerometro/v3/
-```
+### Reproduzir o processamento e a modelagem
 
-### Etapa 1 — preparar RAIS
+O fluxo de scripts é `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08`, conforme os nomes atuais de `code/`. A preparação utiliza os arquivos RAIS 2025 e a tipologia IBGE; as etapas seguintes realizam auditoria, treinamento, avaliação, preparação geográfica e exportação dos resultados públicos. As saídas de análise e os modelos treinados são mantidos fora do GitHub, sob a raiz de dados local `C:\Users\uriel\data`, separada da pasta do código.
 
-Execute `scripts/01_preparar_rais.py`. Entrada: Bronze regional e planilha do IBGE. Saída em `data/analysis/remunerometro/v3/`:
+**Atenção:** os resultados registrados neste README correspondem à execução já encerrada. Reexecutar scripts com dados, bibliotecas ou partições diferentes pode gerar resultados distintos; não se deve escolher um novo modelo usando o teste anteriormente consultado.
 
-- `rais_2025_candidatos_ampliados.parquet` — remuneração corretamente interpretada, **não dividido novamente**.
-- `frequencia_cbo_2025.csv` — catálogo observado, usado pelo script 03.
-- `auditoria_remuneracao_2025.csv`, `auditoria_2025.csv`, frequências por UF/CBO/tipologia e demais diagnósticos.
+## Limitações e interpretação
 
-### Etapa 2 — preparar população elegível
+- A RAIS descreve **emprego formal**, não cobre de forma integral trabalho autônomo, prestação de serviços ou ocupações informais.
+- A variável prevista é a remuneração nominal de um mês específico, dezembro de 2025, sem ajuste inflacionário.
+- Os modelos são **preditivos**, não estimativas causais de retornos salariais.
+- A amostra de treinamento de 2.000 vínculos limita a precisão em CBOs pouco frequentes, especialmente no grupo de Estatística.
+- As métricas do painel público referem-se às **células divulgadas**, e não necessariamente ao conjunto de teste integral.
+- A geografia identifica o estabelecimento vinculado ao registro; o município não entra como um efeito fixo individual no modelo.
 
-Execute `scripts/03_preparar_modelagem.py`, que lê **diretamente** `rais_2025_candidatos_ampliados.parquet` e `frequencia_cbo_2025.csv`. Exige `ativo_3112 == '1'` e `rem_dez_nom > 0`; não descarta vínculos automaticamente por valores ausentes de idade, jornada, escolaridade ou geografia. Cria em `data/analysis/remunerometro/v3/modelagem_dupla/`:
+## Documentação
 
-- `rais_2025_base_modelagem_dezembro.parquet`
-- `catalogo_35_cbos_3_grupos.csv`
-- `auditoria_elegibilidade.csv` e frequências de grupos, CBO, grande região e código de atividade.
+- [Metodologia](docs/metodologia.md)
+- [Resultados dos modelos](docs/resultados_modelo.md)
+- [Dicionário de variáveis](docs/dic_var.md)
+- [Notebook de análise](notebook/remunerometro.ipynb)
 
-### Etapa 3 — auditoria final
-
-Execute `scripts/02_auditar_base.py`, que lê a base elegível e seu catálogo. Relatórios em `data/analysis/remunerometro/v3/modelagem_dupla/auditoria_final/`; não edita bases ou faz decisões sobre amostragem.
-
-**Observação de compatibilidade:** resultados antigos gerados a partir de `rais_2025_candidatos_ampliados_salarios_corrigidos.parquet` pertencem ao fluxo anterior. O fluxo oficial atual tem **apenas um Parquet analítico na saída do 01**; não use os dois simultaneamente.
-
-## Próxima etapa — modelagem
-
-A atividade requer a partição treino/teste conforme o laboratório 5 e **sorteio aleatório de 2.000 vínculos exclusivamente do treinamento**, com semente igual aos seis últimos dígitos da matrícula. O pré-processamento deve ocorrer **dentro dos pipelines** e a comparação das especificações deve utilizar os mesmos índices de treino/teste e as mesmas partições de validação cruzada (5 folds), sempre que possível. Não usar o conjunto de teste para escolher modelos ou hiperparâmetros. Métricas: **MAE em reais** e **RMSE em log**; relatar ainda `p/n`, curvas de validação e diagnósticos por sexo e escolaridade. O notebook oficial ainda será incorporado.
-
-## Dashboard planejado
-
-Aplicação Streamlit, com chave para alternar entre as duas especificações, filtros de grupo, CBO (quando aplicável), tipologia IBGE, grande região, UF e município, mapa e estimativa de remuneração. Previsões de combinações pouco observadas deverão ter aviso de limitação amostral. Dashboard não está implementado.
-
-## Reprodutibilidade e privacidade
-
-Microdados Parquet (Bronze, Silver, Gold e Analysis), tabelas de resultados potencialmente grandes e modelos binários são mantidos fora do Git por `.gitignore`. Versionar código, documentação, configurações e relatórios agregados adequados, respeitando termos das fontes. O GitHub não substitui o armazenamento dos dados originais no computador.
-
-## Checklist
-
-- [x] Definir objetivo e usuário-alvo.
-- [x] Selecionar 35 CBOs e três agrupamentos.
-- [x] Associar tipologia IBGE e UF do estabelecimento.
-- [x] Consolidar extração e conversão salarial no script 01.
-- [x] Preparar script 03 e preservar auditoria 02.
-- [ ] Reexecutar fluxo oficial `01 → 02 → 03` e validar contagens e salários.
-- [ ] Incorporar notebook modelo do professor e partição do laboratório.
-- [ ] Treinar baseline, MQO, Ridge e Lasso em cada especificação.
-- [ ] Avaliar validação e teste sem vazamento.
-- [ ] Preparar dashboard e documentação final de uso de IA.
+Projeto desenvolvido no contexto da disciplina de Aprendizagem de Máquina Supervisionada, UFPB/CCSA, semestre 2026.2.
