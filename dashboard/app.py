@@ -16,13 +16,12 @@ import pandas as pd
 import plotly.express as px
 import streamlit as st
 from branca.colormap import linear
-from streamlit_folium import st_folium
 
 ROOT = Path(__file__).resolve().parents[1]
 PUBLIC = ROOT / "data_public"
 PARQUET = PUBLIC / "indicadores_agregados.parquet"
 CATALOG = PUBLIC / "municipios_catalogo.csv"
-MAP = PUBLIC / "territorios.geojson"
+MAP = (PUBLIC / "territorios_leve.geojson") if (PUBLIC / "territorios_leve.geojson").exists() else (PUBLIC / "territorios.geojson")
 MIN_N = 30
 REGIONS = {
     "Norte": ["RO", "AC", "AM", "RR", "PA", "AP", "TO"],
@@ -123,7 +122,8 @@ def draw_map(geo, values_df, metric, allowed_ids, selected_id):
     palette = linear.YlOrRd_09.scale(low, high)
     palette.caption = next((k for k,v in METRICS.items() if v == metric), metric)
     palette.add_to(fmap)
-    features = [f for f in geo["features"] if str(f.get("properties", {}).get("territorio_id", "")) in allowed_ids]
+    ids_present = set(values)
+    features = [f for f in geo["features"] if str(f.get("properties", {}).get("territorio_id", "")) in allowed_ids and str(f.get("properties", {}).get("territorio_id", "")) in ids_present]
     if not features:
         st.info("Não há polígonos para a combinação territorial selecionada.")
         return
@@ -144,25 +144,24 @@ def draw_map(geo, values_df, metric, allowed_ids, selected_id):
     bounds = layer.get_bounds()
     if bounds and all(np.isfinite(v) for p in bounds for v in p):
         fmap.fit_bounds(bounds, padding=(12, 12))
-    st_folium(fmap, height=540, use_container_width=True, returned_objects=["last_object_clicked_tooltip"])
+    # Importação tardia: o componente JS de mapa não entra na tela inicial.
+    from streamlit_folium import st_folium
+    st_folium(fmap, height=490, use_container_width=True, returned_objects=[])
 
 
 st.title("Remunerômetro · RAIS 2025")
 st.caption("Dashboard público · avaliação territorial de dois modelos congelados · dados agregados do conjunto de teste")
-missing_files = [str(p.relative_to(ROOT)) for p in (PARQUET, CATALOG, MAP) if not p.exists()]
+missing_files = [str(p.relative_to(ROOT)) for p in (PARQUET, CATALOG) if not p.exists()]
 if missing_files:
     st.error("Faltam arquivos no GitHub: " + ", ".join(missing_files))
     st.stop()
 try:
     data, catalog = load_tables()
-    geo = load_geojson()
 except Exception as error:
     st.exception(error)
     st.stop()
 
 # Relação território–UF/tipologia obtida do catálogo, nunca inventada.
-territory_meta = catalog[["territorio_id", "uf_sigla", "tipologia_ibge"]].dropna(subset=["territorio_id"]).drop_duplicates()
-territory_to_uf = catalog.groupby("territorio_id")["uf_sigla"].agg(lambda x: x.dropna().iloc[0] if not x.dropna().empty else None)
 
 with st.sidebar:
     st.header("Filtros")
@@ -185,11 +184,15 @@ with st.sidebar:
     typology = st.selectbox("Tipologia IBGE", ["Todas"] + types)
     if typology != "Todas":
         possible = possible[possible["tipologia_ibge"].eq(typology)]
-    options = {f"{r.municipio_nome} · {r.uf_sigla} ({r.code_muni})": r.territorio_id
-               for r in possible[["municipio_nome", "uf_sigla", "code_muni", "territorio_id"]].dropna().itertuples(index=False)}
-    municipality = st.selectbox("Município (localizador)", ["Todos"] + sorted(options))
+    use_locator = st.checkbox("Localizar município", value=False)
+    options = {}
+    municipality = "Todos"
+    if use_locator:
+        options = {f"{r.municipio_nome} · {r.uf_sigla} ({r.code_muni})": r.territorio_id
+                   for r in possible[["municipio_nome", "uf_sigla", "code_muni", "territorio_id"]].dropna().itertuples(index=False)}
+        municipality = st.selectbox("Município (localizador)", ["Todos"] + sorted(options))
     metric_name = st.selectbox("Indicador do mapa", list(METRICS))
-    st.caption("Município localiza um território; não há estatística pública por município.")
+    st.caption("O município apenas localiza um território agregado.")
 
 if family != "Todas":
     data = data[data["grupo_ocupacional"].eq(family)]
@@ -214,50 +217,75 @@ c2.metric("Remuneração observada", brl(summary["observado"]))
 c3.metric("Remuneração prevista", brl(summary["previsto"]))
 c4.metric("MAE", brl(summary["mae"]))
 
-page_map, page_compare, page_municipal = st.tabs(["Mapa e territórios", "Comparar modelos", "Localizar município"])
-with page_map:
-    territory = summarize(filtered, ["territorio_id", "territorio_nome"], variant)
-    left, right = st.columns([1.35, 1])
-    with left:
-        st.subheader("Cartograma de territórios agregados")
-        draw_map(geo, territory, METRICS[metric_name], allowed_ids, selected_id)
-    with right:
-        st.subheader("Comparação de territórios")
-        ranked = territory.dropna(subset=["mae"]).sort_values("n", ascending=False).head(15)
-        if ranked.empty:
-            st.info("Sem áreas elegíveis para o gráfico.")
-        else:
-            fig = px.bar(ranked.sort_values("mae"), x="mae", y="territorio_nome", orientation="h",
-                         hover_data=["n", "observado", "previsto"],
-                         labels={"mae": "MAE (R$)", "territorio_nome": "Território"})
-            fig.update_layout(height=540, margin=dict(l=0, r=0, t=10, b=0))
-            st.plotly_chart(fig, use_container_width=True)
+# IMPORTANTE: st.tabs executa todos os painéis mesmo quando não visíveis.
+# st.radio permite executar somente o painel escolhido, reduzindo o tempo inicial.
+page = st.radio(
+    "Navegação", ["Visão geral", "Mapa e territórios", "Comparar modelos", "Localizar município"],
+    index=0, horizontal=True, label_visibility="collapsed",
+)
+territory = summarize(filtered, ["territorio_id", "territorio_nome"], variant)
+
+if page == "Visão geral":
+    st.subheader("Territórios com maior número de vínculos publicados")
+    ranked = territory.dropna(subset=["mae"]).sort_values("n", ascending=False).head(15)
+    if ranked.empty:
+        st.info("Não há áreas elegíveis para o gráfico.")
+    else:
+        fig = px.bar(
+            ranked.sort_values("mae"), x="mae", y="territorio_nome", orientation="h",
+            hover_data=["n", "observado", "previsto"],
+            labels={"mae": "MAE (R$)", "territorio_nome": "Território"},
+        )
+        fig.update_layout(height=480, margin=dict(l=0, r=0, t=10, b=0))
+        st.plotly_chart(fig, width="stretch")
     st.subheader("Indicadores por território")
-    st.dataframe(territory[["territorio_nome", "n", "observado", "previsto", "mae", "vies", "rmse_log"]]
-                 .rename(columns={"territorio_nome":"Território", "n":"Vínculos publicados", "observado":"Observado (R$)",
-                                  "previsto":"Previsto (R$)", "mae":"MAE (R$)", "vies":"Viés (R$)", "rmse_log":"RMSE (log)"})
-                 .sort_values("Vínculos publicados", ascending=False), hide_index=True, use_container_width=True)
-with page_compare:
+    st.dataframe(
+        territory[["territorio_nome", "n", "observado", "previsto", "mae", "vies", "rmse_log"]]
+        .rename(columns={"territorio_nome":"Território", "n":"Vínculos publicados", "observado":"Observado (R$)",
+                         "previsto":"Previsto (R$)", "mae":"MAE (R$)", "vies":"Viés (R$)", "rmse_log":"RMSE (log)"})
+        .sort_values("Vínculos publicados", ascending=False),
+        hide_index=True, width="stretch",
+    )
+
+elif page == "Mapa e territórios":
+    st.subheader("Cartograma de territórios agregados")
+    st.caption("O mapa é carregado sob demanda para reduzir o tempo de abertura do dashboard.")
+    if not MAP.exists():
+        st.error(f"Arquivo cartográfico ausente: {MAP.name}")
+    else:
+        try:
+            with st.spinner("Preparando a cartografia..."):
+                geo = load_geojson()
+                draw_map(geo, territory, METRICS[metric_name], allowed_ids, selected_id)
+        except Exception as error:
+            st.exception(error)
+
+elif page == "Comparar modelos":
     st.subheader("Duas especificações, mesma seleção publicada")
     rows = []
     for variant_, label in [("familias", "Famílias"), ("cbos", "35 CBOs")]:
         v = summarize(filtered, [], variant_).iloc[0]
         rows.append({"Modelo":label, "Vínculos publicados":int(v["n"]), "MAE (R$)":v["mae"],
-                     "RMSE (log)":v["rmse_log"], "Viés (R$)":v["vies"], "Observado (R$)":v["observado"], "Previsto (R$)":v["previsto"]})
+                     "RMSE (log)":v["rmse_log"], "Viés (R$)":v["vies"],
+                     "Observado (R$)":v["observado"], "Previsto (R$)":v["previsto"]})
     comparison = pd.DataFrame(rows)
-    st.dataframe(comparison, hide_index=True, use_container_width=True)
+    st.dataframe(comparison, hide_index=True, width="stretch")
     if comparison["MAE (R$)"].notna().all():
-        st.plotly_chart(px.bar(comparison, x="Modelo", y="MAE (R$)", title="MAE no recorte publicado"), use_container_width=True)
+        st.plotly_chart(px.bar(comparison, x="Modelo", y="MAE (R$)", title="MAE no recorte publicado"), width="stretch")
     st.caption("Métricas da amostra publicada; não representam obrigatoriamente o teste completo de 234.693 vínculos.")
-with page_municipal:
+
+elif page == "Localizar município":
     st.subheader("Localizador de municípios")
-    st.write("Escolha um município na barra lateral. Ele será associado ao seu território cartográfico, sem apresentar salários municipais inexistentes no conjunto público.")
+    st.write("Ative 'Localizar município' na barra lateral para selecionar uma cidade. Não há estatísticas municipais nesta base pública.")
     if municipality != "Todos":
         st.write("Território:", selected_id)
-    st.dataframe(possible[["code_muni", "municipio_nome", "uf_sigla", "tipologia_ibge", "territorio_id"]]
-                 .rename(columns={"code_muni":"IBGE (6 dígitos)", "municipio_nome":"Município", "uf_sigla":"UF",
-                                  "tipologia_ibge":"Tipologia IBGE", "territorio_id":"Território agregado"}),
-                 hide_index=True, use_container_width=True)
+    st.dataframe(
+        possible[["code_muni", "municipio_nome", "uf_sigla", "tipologia_ibge", "territorio_id"]]
+        .rename(columns={"code_muni":"IBGE (6 dígitos)", "municipio_nome":"Município", "uf_sigla":"UF",
+                         "tipologia_ibge":"Tipologia IBGE", "territorio_id":"Território agregado"}),
+        hide_index=True, width="stretch",
+    )
+
 with st.expander("Metodologia e limitações"):
     st.markdown("""
 - RAIS 2025: vínculos formais ativos em 31/12 e remuneração nominal positiva de dezembro.
@@ -268,4 +296,3 @@ with st.expander("Metodologia e limitações"):
 - A seleção de 35 CBOs inclui aproximações de títulos de mercado (por exemplo BI, UX e engenharia de dados).
 - `exp(log previsto)` não representa necessariamente o salário médio condicional em reais. Região refere-se à localização do estabelecimento, não à residência.
 """)
-
