@@ -1,0 +1,250 @@
+% !TeX program = pdflatex
+% Documento autonomo: nao depende de am_sup_estilo.sty nem de figuras externas.
+\documentclass[10pt,a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern,microtype,geometry,multicol}
+\usepackage{amsmath,amssymb,booktabs,tabularx,array,xcolor,colortbl}
+\usepackage{graphicx,hyperref,fancyhdr,enumitem}
+\usepackage[compact]{titlesec}
+\geometry{top=20mm,bottom=19mm,left=19mm,right=19mm}
+\definecolor{navy}{HTML}{153955}
+\definecolor{teal}{HTML}{117C8A}
+\definecolor{slate}{HTML}{5A6C78}
+\definecolor{hairline}{HTML}{D6DFE5}
+\definecolor{wash}{HTML}{EFF5F7}
+\definecolor{ink}{HTML}{23323D}
+\hypersetup{colorlinks=true,urlcolor=teal,linkcolor=navy,pdftitle={Remunerômetro RAIS 2025 - Relatório técnico},pdfauthor={Uriel Holanda}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{3.0pt}
+\setlength{\columnsep}{7mm}
+\setlength{\emergencystretch}{1.5em}
+\setlist[itemize]{leftmargin=*,topsep=2pt,itemsep=1pt,parsep=0pt}
+\setlist[enumerate]{leftmargin=*,topsep=2pt,itemsep=1pt,parsep=0pt}
+\titleformat{\section}{\sffamily\bfseries\color{navy}\fontsize{11}{13}\selectfont}{\thesection}{.45em}{}
+\titlespacing*{\section}{0pt}{7pt}{3pt}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\sffamily\fontsize{8}{10}\selectfont\color{slate}REMUNERÔMETRO  /  RAIS 2025}
+\fancyhead[R]{\sffamily\fontsize{8}{10}\selectfont\color{slate}RELATÓRIO TÉCNICO}
+\fancyfoot[R]{\sffamily\color{slate}\thepage}
+\renewcommand{\headrulewidth}{.3pt}
+\newcommand{\kicker}[1]{{\sffamily\bfseries\color{teal}\fontsize{8.5}{11}\selectfont\MakeUppercase{#1}}}
+\newcommand{\pagetitle}[2]{\noindent\kicker{#1}\par\vspace{2mm}{\sffamily\bfseries\color{navy}\fontsize{20}{23}\selectfont #2\par}\vspace{3mm}{\color{hairline}\rule{\linewidth}{.7pt}}\vspace{3mm}}
+\newcommand{\metric}[3]{\begin{minipage}[t]{.235\linewidth}\raggedright{\sffamily\bfseries\color{navy}\fontsize{15.5}{18}\selectfont #1}\par{\sffamily\color{slate}\fontsize{7.3}{9}\selectfont #2}\par{\sffamily\color{teal}\fontsize{7}{8.5}\selectfont #3}\end{minipage}}
+\newcommand{\finenote}[1]{{\sffamily\fontsize{7.5}{10}\selectfont\color{slate}#1\par}}
+\newcommand{\sourceurl}{\href{https://github.com/Uriel-Est/AM_remunerometro}{github.com/Uriel-Est/AM\_remunerometro}}
+\newcommand{\dashurl}{\href{https://am-renumorometro-est.streamlit.app/}{am-renumorometro-est.streamlit.app}}
+\begin{document}
+\noindent\kicker{Aprendizagem de Máquina Supervisionada\hspace{6pt}\textbullet\hspace{6pt}Trabalho individual 2026.2}\par
+\vspace{4mm}
+{\sffamily\bfseries\fontsize{24}{27}\selectfont\color{navy}Remunerômetro\par Remuneração formal na RAIS 2025\par}
+\vspace{2mm}
+{\sffamily\color{slate}\fontsize{11}{14}\selectfont Processamento, seleção de modelos, avaliação e publicação de indicadores territoriais\par}
+\vspace{4mm}
+{\color{hairline}\rule{\linewidth}{.7pt}}\vspace{2mm}
+\noindent\begin{tabularx}{\linewidth}{@{}Xr@{}}
+{\sffamily\fontsize{8.5}{11}\selectfont\textbf{RELATÓRIO TÉCNICO INDIVIDUAL}\quad UFPB / CCSA} & {\sffamily\fontsize{8.5}{11}\selectfont Novembro de 2026}\\
+\multicolumn{2}{@{}l@{}}{\sffamily\fontsize{8.5}{11}\selectfont \textbf{Autor:} Uriel Holanda\quad |\quad Disciplina: Aprendizagem de Máquina Supervisionada}\\
+\end{tabularx}
+\vspace{4mm}
+\noindent\colorbox{wash}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}\vspace{2.7mm}
+\hspace{2mm}\metric{1.173.463}{vínculos elegíveis}{RAIS 2025}\hfill
+\metric{35}{CBOs selecionados}{3 grupos profissionais}\hfill
+\metric{234.693}{vínculos no teste}{20\% da população}\hfill
+\metric{R\$ 4.115}{MAE do modelo CBO}{Lasso, teste final}
+\vspace{2.7mm}\end{minipage}}\par
+\vspace{4mm}
+\noindent{\sffamily\fontsize{8.5}{11}\selectfont\textbf{Código e documentação:} \sourceurl\quad\textbf{Painel interativo:} \dashurl}\par
+\vspace{3mm}
+\begin{multicols}{2}\raggedcolumns
+\section{Decisão e contexto}
+O Remunerômetro investiga a previsão da remuneração nominal de dezembro de 2025 em ocupações formais selecionadas nas áreas de estatística, quantitativas, tecnologia, dados e profissões relacionadas. A unidade estatística é o \textbf{vínculo empregatício}, não a pessoa única. O produto permite comparar valores observados, previstos e erros de modelos, com leitura ocupacional e territorial.
+
+A proposta é descritiva e preditiva. Não identifica o efeito causal da escolaridade, da profissão ou da localização sobre salários. Tampouco representa o mercado informal, a remuneração de autônomos ou valores de contratos por pessoa jurídica.
+
+\section{Pergunta e especificações}
+\textbf{Pergunta operacional.} Para um vínculo elegível, qual é a remuneração nominal de dezembro estimada a partir de características do trabalhador, do contrato, da atividade e do estabelecimento?
+
+Comparam-se duas especificações independentes, submetidas à mesma divisão de dados e ao mesmo procedimento de seleção: \textbf{Modelo A}, com a ocupação representada por três grupos profissionais; e \textbf{Modelo B}, com a ocupação representada por \textbf{35 códigos CBO} de seis dígitos. As demais covariáveis são equivalentes nas duas abordagens.
+
+\section{Universo e fontes}
+A base é formada a partir de sete arquivos regionais Parquet da \textbf{RAIS pública 2025}. A extração percorreu 91.710.262 registros; a seleção ocupacional identificou 1.635.107 candidatos; e os filtros de elegibilidade resultaram em \textbf{1.173.463 vínculos} com situação ativa em 31/12 e remuneração positiva em dezembro.
+
+A tipologia municipal rural--urbana é associada a partir da classificação do IBGE; a localização refere-se ao \textbf{estabelecimento}, não necessariamente à residência ou ao local de trabalho remoto. A malha cartográfica utiliza geometrias municipais do \texttt{geobr} (referência 2022).
+
+\section{Regra de interpretação}
+A resposta foi transformada como $y_i=\ln(w_i)$, com $w_i>0$. A estimativa exibida em reais usa $\hat w_i=\exp(\hat y_i)$. A exponenciação do valor previsto em log não recupera automaticamente a esperança condicional em reais, e pode induzir subestimação sistemática nessa escala.
+
+CBOs usados como aproximações de termos de mercado, tais como BI, UX e engenharia de dados, \textbf{não equivalem necessariamente aos respectivos títulos profissionais}.
+\end{multicols}
+
+\newpage
+\pagetitle{Pipeline de dados}{Do arquivo regional ao conjunto elegível}
+\noindent\textbf{Tabela 1 -- Etapas e produtos de processamento}\par\vspace{2mm}
+{\small\begin{tabularx}{\linewidth}{@{}p{11mm}p{37mm}X@{}}\toprule
+\textbf{Script} & \textbf{Etapa} & \textbf{Produto ou verificação}\\\midrule
+01 & Extrair e padronizar & Seleção dos CBOs, harmonização salarial e chaves geográficas; frequências e auditorias\\
+02 & Preparar modelagem & Filtro de ativos, remuneração positiva e três grupos ocupacionais; base elegível\\
+03 & Auditar base & Coerência CBO--grupo, distribuição salarial e ausência de atributos, sem alterar registros\\
+04 & Treinar e selecionar & Partição, sorteio de 2.000 vínculos do treino, validação cruzada e pipelines congelados\\
+05 & Avaliar & Leitura única do teste reservado, métricas e diagnósticos por subgrupo\\
+06 & Preparar cartografia & Catálogo municipal e polígonos territoriais com malha geográfica pública\\
+07 & Agregar o teste & Resultados congelados por município--CBO, sem reajuste dos modelos\\
+08 & Exportar publicação & Células agregadas por território--CBO com supressão de pequenos grupos\\\bottomrule
+\end{tabularx}}\par\vspace{2mm}
+\finenote{Os nomes e a numeração correspondem aos arquivos reais da pasta \texttt{code/} no repositório. Os scripts 04 e 08 tratam, respectivamente, da seleção de modelos e da exportação pública.}
+\vspace{3mm}
+\begin{multicols}{2}\raggedcolumns
+\section{Preparação inicial}
+O script 01 usa leitura em lotes para selecionar os códigos ocupacionais definidos na pesquisa. São padronizados CBO, município, UF, CNAE, faixa de escolaridade e informações contratuais. Os registros selecionados são persistidos em Parquet, acompanhados de tabelas de frequência e auditoria.
+
+Uma correção crítica incidiu sobre o formato monetário: valores de origem como \texttt{2715.58} já continham ponto decimal. Tratar o ponto como separador de milhar inflaria a remuneração. A versão consolidada interpreta esse ponto corretamente, sem posterior divisão arbitrária por 100.
+
+\section{Elegibilidade e consistência}
+O script 02 restringe o universo aos vínculos ativos em 31 de dezembro, com remuneração nominal positiva. Os \textbf{35 CBOs} são organizados em \emph{Estatística formal e quantitativas}, \emph{TI e dados} e \emph{Expansão profissional}.
+
+A auditoria do script 03 verifica duplicações relevantes, códigos válidos, coerência entre CBO e grupo, situações de vínculo, valores remuneratórios e faltantes. Variáveis ausentes como idade ou jornada não geram exclusão automática nesta fase. Seu tratamento ocorre dentro dos pipelines e respeita as divisões de treino e validação.
+
+\section{Covariáveis e prevenção de vazamento}
+As duas especificações incluem UF do estabelecimento, tipologia rural--urbana do município, escolaridade, divisão CNAE, idade e horas contratadas. A representação ocupacional é a \textbf{única diferença entre os modelos}.
+
+\texttt{ColumnTransformer} e \texttt{Pipeline} aplicam imputação, codificação \emph{one-hot} e transformação numérica. Esses componentes são ajustados exclusivamente com a parcela de treinamento de cada dobra. Não se introduzem dummies para milhares de municípios; o código municipal serve à integração espacial e à navegação.
+
+\section{Arquitetura local e pública}
+Os microdados e modelos persistidos ficam fora do repositório público, em uma pasta de dados independente da pasta dos scripts. O ambiente local preserva indicadores mais detalhados por município--CBO; já a aplicação pública usa arquivos reduzidos em \texttt{data\_public/}, suficientes para tabelas, gráficos e um mapa territorial interativo.
+
+O código é mantido no GitHub, enquanto a aplicação é hospedada no Streamlit Community Cloud. O painel público não executa novos ajustes de modelo nem oferece uma previsão salarial municipal individualizada.
+\end{multicols}
+
+\newpage
+\pagetitle{Desenho da avaliação}{Treinamento, regressão penalizada e teste}
+\noindent\colorbox{wash}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}\vspace{2.5mm}
+\hspace{2mm}\metric{80\%}{parcela de treinamento}{938.770 vínculos}\hfill
+\metric{2.000}{amostra para ajuste}{extraída somente do treino}\hfill
+\metric{5}{dobras da validação}{K-Fold com embaralhamento}\hfill
+\metric{0,001}{$\alpha$ selecionado}{Lasso nas duas versões}
+\vspace{2.5mm}\end{minipage}}\par
+\vspace{4mm}
+\begin{multicols}{2}\raggedcolumns
+\section{Partição e amostragem}
+Reservou-se uma partição de teste de \textbf{20\%}, correspondente a 234.693 vínculos. O conjunto remanescente contém 938.770 vínculos. Uma amostra aleatória de 2.000 observações foi extraída \emph{apenas} do treinamento, com semente registrada como \texttt{5327}. A fração e a semente devem ser confrontadas com as exigências exatas da atividade acadêmica.
+
+A escolha de modelos usa \textbf{validação cruzada de cinco dobras} dentro dessa amostra. O conjunto de teste não participa da escolha do algoritmo, das transformações, nem do hiperparâmetro de penalização.
+
+\section{Algoritmos comparados}
+Para as duas especificações, o script 04 compara preditor trivial (\texttt{DummyRegressor}), regressão linear por mínimos quadrados (MQO), Ridge e Lasso. O pré-processamento acompanha cada estimador ao longo da validação.
+
+No Lasso, os coeficientes são obtidos minimizando o erro quadrático com uma penalidade proporcional à soma dos valores absolutos dos coeficientes. Esquematicamente:
+\[
+\hat\beta=\arg\min_\beta\left\{\frac{1}{2n}\sum_i (y_i-x_i^\top\beta)^2+\alpha\|\beta\|_1\right\}.
+\]
+
+A penalização pode reduzir coeficientes e ajudar a lidar com muitos indicadores categóricos. Ela não corrige, por si só, eventuais variáveis omitidas ou diferenças estruturais entre ocupações.
+
+\section{Critério e medidas de avaliação}
+A seleção prévia considera o \textbf{MAE em reais}, com o salário previsto obtido a partir da exponenciação da previsão em log. O RMSE na escala log é informado como métrica complementar:
+\begin{align*}
+\mathrm{MAE} &= \frac1n\sum_i |w_i-\hat w_i|,\\
+\mathrm{RMSE}_{\log} &= \sqrt{\frac1n\sum_i(y_i-\hat y_i)^2}.
+\end{align*}
+
+Também são relatados o viés médio monetário, a razão entre número de atributos transformados e tamanho da amostra, e diagnósticos por subgrupos.
+
+\section{Congelamento do teste}
+Após a seleção por validação cruzada, ambos os pipelines são persistidos, e o script 05 os avalia sobre os \textbf{mesmos 234.693 vínculos de teste}, sem novos ajustes. Os resultados de teste são tratados como avaliação final, não como uma segunda rodada de escolha de hiperparâmetros.
+
+A dimensão transformada registrada foi $p=110$ (famílias) e $p=137$ (CBOs), com $n=2.000$ na amostra de ajuste. Logo, $p/n$ equivale a 5,5\% e 6,85\%, respectivamente. O maior detalhamento ocupacional aumenta a dimensão e requer cautela para categorias pouco frequentes.
+\end{multicols}
+
+\newpage
+\pagetitle{Resultados}{Comparação final e leitura dos erros}
+\noindent\textbf{Tabela 2 -- Validação e teste, resultados congelados}\par\vspace{2mm}
+{\small\begin{tabularx}{\linewidth}{@{}Xrr@{}}\toprule
+\textbf{Indicador} & \textbf{Três grupos} & \textbf{35 CBOs}\\\midrule
+Algoritmo selecionado & Lasso & Lasso\\
+$\alpha$ & 0,001 & 0,001\\
+MAE na validação (R\$) & 4.444,33 & 4.197,62\\
+\rowcolor{wash}MAE no teste (R\$) & 4.338,33 & \textbf{4.115,23}\\
+RMSE no teste (log) & 0,6171 & \textbf{0,5865}\\
+Remuneração média observada (R\$) & 9.230,74 & 9.230,74\\
+Remuneração média prevista (R\$) & 7.672,44 & 7.784,68\\
+Viés médio: previsto $-$ observado (R\$) & $-1.558,30$ & $-1.446,06$\\
+Atributos transformados ($p$) & 110 & 137\\\bottomrule
+\end{tabularx}}\par\vspace{2mm}
+\finenote{Fonte: resultados de \texttt{code/04\_treinamento.py} e \texttt{code/05\_avaliar.py}, documentados em \texttt{docs/resultados\_modelo.md}. MAE expresso em reais; RMSE calculado na escala log.}
+\vspace{4mm}
+\noindent\colorbox{wash}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}\vspace{2.7mm}
+\hspace{2mm}\metric{R\$ 223,11}{diferença de MAE}{grupos menos CBOs}\hfill
+\metric{5,14\%}{redução relativa}{no conjunto de teste}\hfill
+\metric{0,5865}{RMSE log -- CBOs}{menor que 0,6171}\hfill
+\metric{R\$ 9.231}{salário médio real}{aprox., no teste}
+\vspace{2.7mm}\end{minipage}}\par
+\vspace{4mm}
+\begin{multicols}{2}\raggedcolumns
+\section{Interpretação do desempenho}
+O modelo com 35 CBOs apresenta um MAE de teste \textbf{R\$ 223,11 inferior} ao da especificação com três grupos, redução descritiva próxima de 5,14\%. O resultado favorece maior granularidade ocupacional na métrica agregada, dentro do protocolo definido anteriormente à abertura do teste.
+
+Esse desempenho não implica superioridade do modelo por CBO em todos os segmentos. A documentação final registra, por exemplo, que a categoria de Estatística formal e quantitativas teve desempenho de MAE relativamente melhor na especificação por grupos, enquanto o resultado global favoreceu os CBOs.
+
+\section{Viés na escala monetária}
+A remuneração média observada no teste foi R\$ 9.230,74. A média prevista foi R\$ 7.672,44 no modelo por grupos e R\$ 7.784,68 no modelo por CBO. Assim, os dois apresentaram \textbf{viés negativo}, próximo de R\$ 1,6 mil e R\$ 1,4 mil, respectivamente.
+
+Esse padrão é compatível com dificuldades de retransfomar previsões logarítmicas e com dispersão salarial elevada. Não se deve interpretar uma previsão pontual como salário garantido ou faixa de incerteza calibrada.
+
+\section{Diagnósticos por perfil}
+O script de avaliação calcula tabelas por sexo, escolaridade, região, tipologia e ocupação. Diferenças de MAE entre grupos são descritivas, pois níveis salariais, tamanhos de grupo e frequências ocupacionais variam. Não constituem evidência direta de discriminação ou relação causal.
+
+O grupo de estatística é pequeno relativamente ao de TI e ao de expansão profissional. Com apenas 2.000 vínculos na amostra de ajuste, isso impõe instabilidade potencial para códigos muito raros.
+
+\section{Regressão ou classificação?}
+A regressão corresponde ao objetivo do projeto: estimar um valor remuneratório contínuo. Uma classificação em faixas salariais ou em probabilidade de superar um patamar responderia a outra pergunta e exigiria redefinir o alvo e as métricas. Uma extensão dessa natureza deve prever \textbf{nova avaliação independente}, já que o teste atual foi aberto uma vez para a regressão.
+\end{multicols}
+
+\newpage
+\pagetitle{Distribuição e transparência}{Mapa, dashboard e limites de divulgação}
+\begin{multicols}{2}\raggedcolumns
+\section{Construção dos territórios}
+O processamento cartográfico utiliza a malha municipal obtida via \texttt{geobr}. Os municípios são associados a unidades de visualização pela UF e pela tipologia rural--urbana, com dissolução geométrica e simplificação de contornos para uso interativo. Tais territórios agregados servem à visualização; não equivalem a coeficientes territoriais dos modelos.
+
+O script 07 utiliza os \textbf{modelos já congelados} para calcular somas de remuneração, previsões, erros absolutos e erros quadráticos em log sobre o conjunto de teste. O material local permite leitura municipal mais detalhada, observados os limites de cobertura.
+
+\section{Exportação pública}
+O script 08 consolida os dados por \textbf{território $\times$ CBO}, mantendo as somas aditivas e descartando células com menos de \textbf{30 vínculos}. As médias e erros podem então ser recompostos por $\sum w/n$, $\sum \hat w/n$, $\sum |w-\hat w|/n$ e $\sqrt{\sum e_{\log}^2/n}$.
+
+A supressão de células pequenas é uma proteção inicial e não elimina todo risco de inferência por combinações de filtros. Os totais públicos podem ser diferentes dos obtidos no teste integral, em razão das células não divulgadas.
+
+\section{Interface e navegação}
+A versão pública lê \texttt{indicadores\_agregados.parquet}, \texttt{municipios\_catalogo.csv} e \texttt{territorios.geojson} da pasta \texttt{data\_public/}. O painel apresenta indicadores, comparação entre os dois modelos, gráficos e cartografia territorial.
+
+Para melhorar a inicialização, a versão otimizada evita montar o mapa Folium na abertura; a leitura cartográfica e a construção do mapa ficam restritas à página correspondente. O catálogo municipal atua como \textbf{localizador do território}: não cria previsão salarial específica de um município quando a base pública contém apenas agregados.
+
+\section{Reprodutibilidade}
+O GitHub mantém os oito scripts, o notebook, os documentos metodológicos e os arquivos de publicação; os registros individuais da RAIS e os pipelines de treinamento permanecem fora do Git. Para reproduzir integralmente o experimento, são necessários os dados de origem, o ambiente Python apropriado e os artefatos de partição.
+
+\section{Limitações e próximos passos}
+\begin{itemize}
+\item Cobertura restrita a vínculos formais e 35 CBOs selecionados.
+\item Remuneração nominal de um mês, sem correção inflacionária.
+\item Variáveis omitidas, como experiência efetiva, podem afetar a precisão.
+\item Amostra de ajuste pequena para categorias raras; erros relativamente elevados.
+\item Viés monetário após transformação logarítmica; sem intervalos de previsão calibrados.
+\item Dados agregados não autorizam inferências individuais ou causais.
+\end{itemize}
+
+\section{Transparência sobre IA}
+Ferramentas de IA generativa apoiaram a redação, a estruturação documental e a programação. A descrição metodológica foi baseada nos scripts e nas saídas documentadas do projeto. A responsabilidade pela verificação dos dados, pelos procedimentos, pela divulgação dos resultados e pelas conclusões cabe ao responsável pelo trabalho.
+\end{multicols}
+\vspace{3mm}
+{\color{hairline}\rule{\linewidth}{.6pt}}\vspace{2mm}
+{\sffamily\fontsize{9}{12}\selectfont\color{navy}\textbf{ARTEFATOS DO PROJETO}}\par\vspace{2mm}
+\noindent\begin{tabularx}{\linewidth}{@{}p{28mm}X@{}}
+\textbf{Repositório} & \sourceurl\\
+\textbf{Dashboard} & \dashurl\\
+\textbf{Notebook} & \href{https://github.com/Uriel-Est/AM_remunerometro/tree/main/notebook}{github.com/Uriel-Est/AM\_remunerometro/tree/main/notebook}\\
+\textbf{Metodologia} & \href{https://github.com/Uriel-Est/AM_remunerometro/blob/main/docs/metodologia.md}{docs/metodologia.md}\\
+\textbf{Resultados} & \href{https://github.com/Uriel-Est/AM_remunerometro/blob/main/docs/resultados_modelo.md}{docs/resultados\_modelo.md}\\
+\end{tabularx}
+\vspace{2mm}
+\finenote{Nota editorial: os dados numéricos refletem a execução documentada e a avaliação final de novembro de 2026. Este relatório não representa uma nova rodada de ajuste dos modelos.}
+\end{document}
