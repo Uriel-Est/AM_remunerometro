@@ -19,12 +19,13 @@ import unicodedata
 import pandas as pd
 import geopandas as gpd
 
-RAIZ = Path.cwd()
-EXTERNAL = RAIZ / 'data/external'
+from caminhos import RAIZ_DADOS, PASTA_DASH_LOCAL, PLANILHA_IBGE
+
+EXTERNAL = RAIZ_DADOS / 'external'
 GEO = EXTERNAL / 'municipios_geobr.gpkg'
-TIPOLOGIA = RAIZ / 'data/Tipologia_municipal_rural_urbano.xlsx'
+TIPOLOGIA = PLANILHA_IBGE
 MEMBROS_RM = EXTERNAL / 'rm_capitais_2025.csv'
-SAIDA = RAIZ / 'data/analysis/remunerometro/v3/modelagem_dupla/dashboard'
+SAIDA = PASTA_DASH_LOCAL
 SIMPLIFICAR_METROS = 1700  # projeção métrica; suavização apenas no mapa
 ANO_MALHA_GEOBR = 2022
 CAPITAIS_IBGE_7 = {  # usado somente para identificar capitais que ainda não têm RM validada

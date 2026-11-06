@@ -31,10 +31,10 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 
 # ===================== CONFIGURAÇÕES =====================
-RAIZ = Path.cwd()
-BRONZE = RAIZ / "data" / "bronze" / "rais_publica" / "2025"
-ARQUIVO_IBGE = RAIZ / "data" / "Tipologia_municipal_rural_urbano.xlsx"
-SAIDA = RAIZ / "data" / "analysis" / "remunerometro" / "v3"
+from caminhos import BRONZE, PASTA_ANALISE, PLANILHA_IBGE
+
+ARQUIVO_IBGE = PLANILHA_IBGE
+SAIDA = PASTA_ANALISE
 LOTE = 50_000
 
 # Universo ocupacional acordado; 35 CBOs observados nos dados de 2025.

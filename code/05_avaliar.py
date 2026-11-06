@@ -32,9 +32,10 @@ from sklearn.exceptions import InconsistentVersionWarning
 from sklearn.metrics import mean_absolute_error, mean_squared_error, median_absolute_error
 from sklearn.utils.validation import check_is_fitted
 
-# ------------------- Configurações locais (sem argparse) -------------------
-RAIZ = Path.cwd()
-PASTA_BASE = RAIZ / "data" / "analysis" / "remunerometro" / "v3" / "modelagem_dupla"
+# ------------------- Configurações locais ----------------------
+from caminhos import PASTA_MODELOS
+
+PASTA_BASE = PASTA_MODELOS
 BASE = PASTA_BASE / "rais_2025_base_modelagem_dezembro.parquet"
 TREINAMENTO = PASTA_BASE / "treinamento"
 SAIDA = PASTA_BASE / "avaliacao_final"

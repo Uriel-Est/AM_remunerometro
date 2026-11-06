@@ -1,0 +1,36 @@
+﻿# Dados locais da RAIS e arquivos de processamento
+/data/
+/models/
+/outputs/
+
+# Modelos e artefatos binários locais
+*.joblib
+*.pkl
+*.npz
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.venv/
+venv/
+
+# Positron e R
+.Rproj.user/
+
+# Configurações pessoais
+.env
+.env.*
+config_local.json
+
+# Backups e temporários
+*.bak
+*.backup
+*.tmp
+*.log
+
+# Scripts auxiliares usados somente durante a atualização
+atualizar_docs_remunerometro.py
+atualizar_docs_remunerometro.ps1
+corrigir_caminhos_restantes.py

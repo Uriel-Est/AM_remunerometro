@@ -1,77 +1,79 @@
 # Remunerômetro | RAIS 2025
 
-**Projeto individual de Aprendizagem de Máquina Supervisionada — UFPB/CCSA, 2026.2**
+Projeto individual de Aprendizagem de Máquina Supervisionada — UFPB/CCSA, 2026.2.
 
-O Remunerômetro investiga a remuneração nominal de dezembro de 2025 de vínculos formais em 35 ocupações selecionadas, ligadas à Estatística, áreas quantitativas, tecnologia, dados e profissões relacionadas. O projeto compara duas formas de representar a ocupação em modelos supervisionados e disponibiliza resultados territoriais em um painel interativo.
+O **Remunerômetro** investiga a remuneração nominal de dezembro de 2025 de vínculos formais em 35 ocupações selecionadas nas áreas de Estatística, métodos quantitativos, tecnologia, dados e profissões relacionadas. Compara duas formas de representação ocupacional em modelos preditivos e apresenta indicadores territoriais agregados em um painel interativo.
 
-**[Acessar o dashboard público](https://am-renumorometro-est.streamlit.app/)** · **[Notebook do projeto](notebook/remunerometro.ipynb)** · **[Metodologia](docs/metodologia.md)** · **[Resultados detalhados](docs/resultados_modelo.md)** · **[Dicionário de variáveis](docs/dic_var.md)**
+**[Dashboard público](https://am-renumorometro-est.streamlit.app/)** · **[Notebook](notebook/remunerometro.ipynb)** · **[Metodologia](docs/metodologia.md)** · **[Resultados](docs/resultados_modelo.md)** · **[Dicionário de variáveis](docs/dic_var.md)**
 
-> O painel público apresenta **indicadores agregados do conjunto de teste**, não salários individuais nem novas previsões para perfis informados pelo usuário. A visualização municipal funciona como localizador territorial, e não como estimativa específica de um município.
+> O dashboard público apresenta indicadores agregados do conjunto de teste. Não oferece previsão salarial individual. A seleção de um município serve para identificar seu território de agregação, e não para divulgar uma estimativa específica do município.
 
 ## Pergunta de pesquisa
 
-Em que medida o detalhamento da ocupação melhora a predição da remuneração dos vínculos formais? Para responder, foram comparadas duas especificações com os mesmos preditores, exceto pela representação ocupacional:
+Em que medida representar a ocupação por CBO de seis dígitos, em vez de três grupos profissionais amplos, melhora a predição da remuneração de vínculos formais?
 
-| Elemento | Modelo A — Famílias | Modelo B — 35 CBOs |
+| Elemento | Modelo A — Grupos ocupacionais | Modelo B — 35 CBOs |
 |---|---|---|
-| Ocupação | Três grupos profissionais | 35 códigos CBO de seis dígitos |
-| Demais atributos | UF do estabelecimento, tipologia IBGE, escolaridade, idade, jornada e divisão CNAE | Os mesmos |
-| Alvo | Log da remuneração nominal de dezembro de 2025 | O mesmo |
-| Modelo selecionado por validação cruzada | Lasso (`alpha=0.001`) | Lasso (`alpha=0.001`) |
+| Ocupação | Três grupos profissionais | Código CBO de seis dígitos |
+| Demais preditores | UF do estabelecimento, tipologia IBGE, escolaridade, divisão CNAE, idade e jornada | Os mesmos |
+| Variável-alvo | Logaritmo natural da remuneração nominal de dezembro | A mesma |
+| Modelo selecionado | Ridge (`alpha=10`) | Ridge (`alpha=10`) |
 
-Os grupos profissionais são **Estatística formal e quantitativas**, **TI e dados** e **Expansão profissional**. Os códigos CBO utilizados para aproximar ocupações associadas a BI, UX ou engenharia de dados não constituem equivalências exatas com esses títulos de mercado.
+Os três grupos são **Estatística formal e quantitativas**, **TI e dados** e **Expansão profissional**. As associações entre certos códigos CBO e títulos de mercado, como BI, engenharia de dados e UX/UI, são aproximações analíticas; não representam equivalências ocupacionais exatas.
 
-## Dados e recorte
+## Dados e população elegível
 
-A fonte principal é a **RAIS pública de 2025**, complementada pela tipologia rural-urbana municipal do IBGE. A unidade de análise é o **vínculo empregatício**, não a pessoa trabalhadora: uma pessoa pode ter mais de um vínculo. O município e a UF referem-se ao estabelecimento registrado, não necessariamente à residência do trabalhador ou ao local de prestação de serviço remoto.
+A fonte principal é a **RAIS pública de 2025**, complementada pela tipologia rural-urbana municipal do IBGE. A unidade de análise é o **vínculo empregatício**, e não a pessoa única; uma pessoa pode possuir mais de um vínculo. A localização geográfica corresponde ao estabelecimento informado na RAIS, que pode diferir da residência do trabalhador ou de seu local efetivo de trabalho remoto.
 
-A seleção analítica considera vínculos nas 35 CBOs escolhidas, ativos em **31/12/2025**, com remuneração nominal de dezembro positiva. O processamento identificou **1.173.463 vínculos elegíveis**. Os microdados não são distribuídos neste repositório.
+Foram selecionados vínculos nas 35 CBOs definidas, ativos em **31/12/2025**, com remuneração nominal positiva em dezembro. A população analítica elegível possui **1.173.463 vínculos**. Os microdados e os modelos treinados não são publicados neste repositório.
 
-A remuneração de dezembro na base de origem utiliza ponto decimal, como `2715.58`. O processamento preserva essa escala, sem multiplicar ou dividir arbitrariamente os valores por 100.
+Os valores monetários foram interpretados na escala decimal da fonte. O processamento não aplica conversões arbitrárias por 100.
 
-## Estratégia de treinamento e avaliação
+## Desenho de treinamento e validação
 
-A população elegível foi dividida em **80% para treinamento e 20% para teste**. Foram sorteados **2.000 vínculos somente da parcela de treinamento**, com semente registrada `5327`. A escolha de algoritmo e hiperparâmetros usou **validação cruzada com cinco dobras** e comparação entre baseline, regressão linear, Ridge e Lasso.
+A população elegível foi particionada aleatoriamente em **80% para treinamento e 20% para teste**, usando a semente numérica **`45327`**, correspondente aos seis últimos dígitos de matrícula **`045327`**. Dos vínculos da parcela de treinamento, foram selecionados aleatoriamente **2.000 vínculos** para ajustar e comparar os modelos. Os **234.693 vínculos** reservados ao teste foram mantidos fora do ajuste e da escolha de hiperparâmetros.
 
-O pré-processamento e a codificação one-hot foram incorporados aos pipelines, para evitar vazamento de informações do teste. O conjunto de teste, com **234.693 vínculos**, foi usado na avaliação final após a seleção dos modelos; não foi empregado para novas decisões de ajuste.
+Foram comparados um modelo de referência pela média (`DummyRegressor`), regressão linear por mínimos quadrados ordinários (MQO), Ridge e Lasso. A seleção utilizou o menor **MAE médio em reais** numa validação cruzada com **cinco dobras**, realizada apenas na amostra de treinamento. A imputação de valores ausentes, a codificação *one-hot* e a padronização numérica foram incorporadas a pipelines, evitando que essas transformações fossem ajustadas com os dados de validação ou teste.
 
-### Resultados da avaliação final
+A remuneração é modelada em logaritmo e as previsões são exponenciadas para calcular o MAE em reais. O RMSE secundário é calculado na escala logarítmica. A exponenciação da previsão do log não necessariamente recupera a remuneração média condicional em reais, o que pode contribuir para viés de subestimação.
 
-| Métrica | Modelo A — Famílias | Modelo B — 35 CBOs |
+## Resultados finais
+
+| Indicador | Modelo A — Grupos | Modelo B — 35 CBOs |
 |---|---:|---:|
-| Algoritmo escolhido | Lasso | Lasso |
-| `alpha` | 0,001 | 0,001 |
-| MAE da validação cruzada | R$ 4.444,33 | R$ 4.197,62 |
-| **MAE no teste** | **R$ 4.338,33** | **R$ 4.115,23** |
-| RMSE no teste (escala log) | 0,6171 | 0,5865 |
-| Remuneração média observada no teste | R$ 9.230,74 | R$ 9.230,74 |
-| Remuneração média prevista no teste | R$ 7.672,44 | R$ 7.784,68 |
+| Algoritmo selecionado | Ridge | Ridge |
+| `alpha` | 10 | 10 |
+| Atributos após transformação | 107 | 137 |
+| MAE médio da validação cruzada | R$ 4.432,37 | R$ 4.230,23 |
+| **MAE no teste** | **R$ 4.337,18** | **R$ 4.143,41** |
+| RMSE no teste (escala log) | 0,6173 | 0,5891 |
+| Remuneração média observada no teste | R$ 9.211,01 | R$ 9.211,01 |
+| Remuneração média prevista no teste | R$ 7.541,63 | R$ 7.660,02 |
+| Viés médio (previsto − observado) | −R$ 1.669,38 | −R$ 1.550,99 |
 
-A especificação de 35 CBOs apresentou MAE aproximadamente **R$ 223,11 menor**, redução de **5,14%** em relação à especificação por famílias, na avaliação de teste. Isso representa uma comparação preditiva, não um efeito causal do código ocupacional sobre a remuneração. A transformação de previsões em log de volta para reais pode contribuir para subestimação das médias em reais.
+O modelo por 35 CBOs apresentou **MAE R$ 193,77 menor**, uma redução de aproximadamente **4,47%** em comparação com o modelo por grupos no conjunto de teste. Essa vantagem é descritiva e preditiva; não demonstra efeito causal da ocupação sobre a remuneração nem garante desempenho superior em toda subpopulação.
 
-Os resultados completos e diagnósticos por grupos estão descritos em [`docs/resultados_modelo.md`](docs/resultados_modelo.md) e no [`notebook/remunerometro.ipynb`](notebook/remunerometro.ipynb).
+A seleção de Ridge para as duas especificações decorreu exclusivamente da validação cruzada. Os resultados do teste não foram utilizados para retreinar os modelos nem para alterar seus hiperparâmetros. Diagnósticos por sexo, escolaridade, grande região, tipologia, grupo ocupacional e CBO constam em [resultados detalhados](docs/resultados_modelo.md) e no [notebook](notebook/remunerometro.ipynb).
 
-## Dashboard interativo
+## Dashboard e divulgação de dados
 
-**[Abrir o Remunerômetro no Streamlit](https://am-renumorometro-est.streamlit.app/)**
+O [dashboard público](https://am-renumorometro-est.streamlit.app/) permite consultar indicadores agregados de remuneração observada, remuneração prevista, erros e quantidade de vínculos por ocupação e recortes territoriais. O mapa apresenta agrupamentos geográficos, não previsões individualizadas de municípios.
 
-O dashboard público permite navegar por **modelo, grupo ocupacional, CBO, grande região, UF e tipologia municipal**, além de comparar remuneração observada, remuneração prevista, MAE, viés e quantidade de vínculos nas agregações publicadas. O mapa coroplético, os gráficos e as tabelas são construídos a partir dos arquivos em `data_public/`.
+O arquivo publicado `data_public/indicadores_agregados.parquet` contém **391 células território × CBO**, com **mínimo de 30 vínculos por célula**. Essas células representam **228.263 vínculos** do teste. Entre os 234.693 vínculos de teste, um não encontrou correspondência cartográfica e outros 6.429 ficaram fora do arquivo público em razão da supressão de células pequenas.
 
-Para melhorar o desempenho, a interface pública abre inicialmente uma visão geral e **carrega a cartografia sob demanda**. O arquivo cartográfico leve é utilizado quando presente; caso contrário, o aplicativo utiliza `territorios.geojson`.
+A supressão constitui uma precaução inicial de divulgação, **não** uma garantia completa de anonimização ou ausência de inferência por combinação de filtros. Por isso, os totais e métricas do dashboard podem divergir da avaliação sobre o conjunto completo de teste.
 
-**Diferença entre as versões:** a versão **local**, executada com os dados analíticos externos ao GitHub, permite consultas mais detalhadas por município. A versão **pública** usa apenas resultados agregados por território e CBO: selecionar um município serve para localizar seu território, **não** para divulgar um salário ou erro individualizado para aquela cidade.
-
-Os agregados públicos foram preparados com supressão de células território × CBO com **menos de 30 vínculos**. Essa proteção inicial não garante, isoladamente, ausência de risco de inferência por combinação de filtros. Os totais apresentados no painel público podem diferir dos resultados completos do conjunto de teste, pois refletem somente as células publicadas.
-
-## Estrutura do repositório
+## Organização do repositório
 
 ```text
 AM_remunerometro/
 ├── README.md
 ├── requirements.txt
+├── Tipologia_municipal_rural_urbano.xlsx
 ├── .streamlit/
 │   └── config.toml
 ├── code/
+│   ├── caminhos.py
 │   ├── 01_preparar_rais.py
 │   ├── 02_preparar_modelagem.py
 │   ├── 03_auditar_base.py
@@ -80,54 +82,68 @@ AM_remunerometro/
 │   ├── 06_cartografia.py
 │   ├── 07_prep_data.py
 │   └── 08_exportar_public_data.py
-├── dashboard/
-│   └── app.py
 ├── notebook/
 │   ├── remunerometro.ipynb
-│   └── artefatos/
-├── data_public/
-│   ├── indicadores_agregados.parquet
-│   ├── municipios_catalogo.csv
-│   └── territorios.geojson
+│   └── artefatos/                  # métricas agregadas, tabelas e metadados
+├── dashboard/
+│   └── app.py
+├── data_public/                  # indicadores públicos e cartografia
 └── docs/
     ├── metodologia.md
     ├── resultados_modelo.md
     └── dic_var.md
 ```
 
-O repositório também contém a planilha de tipologia municipal do IBGE. Os nomes acima refletem a organização efetivamente adotada no GitHub; em particular, as pastas são `code/` e `notebook/`, no singular.
+As bases de entrada, bases intermediárias, partições e modelos ajustados ficam **fora do repositório**, no diretório externo definido pelo usuário. Os únicos resultados tabulares versionados são aqueles selecionados para apresentação e divulgação agregada.
 
-## Executar o dashboard público localmente
+## Como executar
 
-Requer Python e acesso aos arquivos desta cópia do repositório.
+### Painel público
 
-```bash
+Após instalar as dependências listadas em `requirements.txt`, execute a partir da raiz do repositório:
+
+```powershell
 python -m pip install -r requirements.txt
 python -m streamlit run dashboard/app.py
 ```
 
-O `dashboard/app.py` do GitHub usa arquivos relativos à raiz do repositório, sem exigir `C:\Users\uriel\data`. Esse `requirements.txt` atende à **aplicação publicada**. Para executar os scripts de treinamento e o notebook analítico, são necessárias também as dependências científicas correspondentes e os dados/artefatos locais.
+O painel público utiliza arquivos de `data_public/` e **não depende dos microdados da RAIS**.
 
-### Reproduzir o processamento e a modelagem
+### Processamento completo e modelagem
 
-O fluxo de scripts é `01` → `02` → `03` → `04` → `05` → `06` → `07` → `08`, conforme os nomes atuais de `code/`. A preparação utiliza os arquivos RAIS 2025 e a tipologia IBGE; as etapas seguintes realizam auditoria, treinamento, avaliação, preparação geográfica e exportação dos resultados públicos. As saídas de análise e os modelos treinados são mantidos fora do GitHub, sob a raiz de dados local `C:\Users\uriel\data`, separada da pasta do código.
+Para reproduzir as etapas analíticas, é necessário ter acesso às bases de entrada e às bibliotecas científicas utilizadas pelos scripts. Configure a variável de ambiente `REMUNEROMETRO_DATA` para apontar para a pasta externa que contém as subpastas `bronze/`, `analysis/` e `external/`:
 
-**Atenção:** os resultados registrados neste README correspondem à execução já encerrada. Reexecutar scripts com dados, bibliotecas ou partições diferentes pode gerar resultados distintos; não se deve escolher um novo modelo usando o teste anteriormente consultado.
+```powershell
+$env:REMUNEROMETRO_DATA = "CAMINHO_DA_PASTA_DE_DADOS"
+```
 
-## Limitações e interpretação
+O arquivo `code/caminhos.py` resolve os caminhos a partir dessa variável. **O diretório absoluto de dados não é gravado nos scripts versionados.** A pasta do repositório contém a planilha de tipologia municipal utilizada na preparação cartográfica.
 
-- A RAIS descreve **emprego formal**, não cobre de forma integral trabalho autônomo, prestação de serviços ou ocupações informais.
-- A variável prevista é a remuneração nominal de um mês específico, dezembro de 2025, sem ajuste inflacionário.
-- Os modelos são **preditivos**, não estimativas causais de retornos salariais.
-- A amostra de treinamento de 2.000 vínculos limita a precisão em CBOs pouco frequentes, especialmente no grupo de Estatística.
-- As métricas do painel público referem-se às **células divulgadas**, e não necessariamente ao conjunto de teste integral.
-- A geografia identifica o estabelecimento vinculado ao registro; o município não entra como um efeito fixo individual no modelo.
+O fluxo completo está organizado nos scripts `01` a `08`: seleção e consolidação da RAIS; preparação da base de modelagem; auditoria; treinamento e validação; avaliação final; cartografia; agregação territorial; e exportação dos indicadores públicos.
 
-## Documentação
+A etapa 05 impede a sobrescrita de uma avaliação final existente. Os resultados publicados correspondem à execução com semente `45327`; não é apropriado escolher novos algoritmos ou hiperparâmetros com base no teste já observado.
+
+### Notebook
+
+O notebook `notebook/remunerometro.ipynb` utiliza as tabelas e os metadados agregados em `notebook/artefatos/`. Abra a raiz do repositório como projeto e execute o notebook com essa raiz como diretório de trabalho. Dessa forma, a apresentação dos resultados independe dos microdados e dos objetos `joblib` locais.
+
+O notebook **reproduz a apresentação dos resultados já calculados**. A reprodução integral do treinamento exige executar os scripts com acesso à base analítica original.
+
+## Limitações
+
+- A RAIS descreve vínculos de **emprego formal** e não cobre integralmente trabalho autônomo e informal.
+- O alvo é a remuneração **nominal de dezembro de 2025**, sem deflação e sem interpretação causal.
+- A amostra efetiva de **2.000 vínculos para modelagem** restringe a representação de ocupações raras e pode gerar sensibilidade à partição aleatória.
+- As previsões em reais obtidas pela exponenciação de previsões em log podem apresentar viés de retrans formação.
+- Os erros por subgrupo são diagnósticos descritivos, não provas de discriminação ou efeito causal.
+- A geografia refere-se ao estabelecimento registrado e não é utilizada como efeito fixo municipal individual no modelo.
+- O dashboard divulga somente células agregadas selecionadas; seus totais não equivalem necessariamente aos do teste integral.
+
+## Documentação complementar
 
 - [Metodologia](docs/metodologia.md)
-- [Resultados dos modelos](docs/resultados_modelo.md)
+- [Resultados detalhados](docs/resultados_modelo.md)
 - [Dicionário de variáveis](docs/dic_var.md)
-- [Notebook de análise](notebook/remunerometro.ipynb)
+- [Notebook analítico](notebook/remunerometro.ipynb)
 
 Projeto desenvolvido no contexto da disciplina de Aprendizagem de Máquina Supervisionada, UFPB/CCSA, semestre 2026.2.

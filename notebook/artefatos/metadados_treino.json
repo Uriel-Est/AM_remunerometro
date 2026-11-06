@@ -1,5 +1,5 @@
 {
-  "semente": 5327,
+  "semente": 45327,
   "frac_teste": 0.2,
   "n_populacao": 1173463,
   "n_treino_populacao": 938770,
@@ -19,20 +19,20 @@
   ],
   "selecionados_cv": {
     "familias": {
-      "algoritmo": "lasso",
-      "alpha": 0.001,
-      "p": 110,
+      "algoritmo": "ridge",
+      "alpha": 10.0,
+      "p": 107,
       "n": 2000,
-      "p_sobre_n": 0.055,
-      "mae_cv": 4444.329112529742
+      "p_sobre_n": 0.0535,
+      "mae_cv": 4432.365091401218
     },
     "cbos": {
-      "algoritmo": "lasso",
-      "alpha": 0.001,
+      "algoritmo": "ridge",
+      "alpha": 10.0,
       "p": 137,
       "n": 2000,
       "p_sobre_n": 0.0685,
-      "mae_cv": 4197.622495574836
+      "mae_cv": 4230.233087947889
     }
   },
   "alvo": "ln_rem_dez",

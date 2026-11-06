@@ -11,10 +11,11 @@ from __future__ import annotations
 from pathlib import Path
 import pandas as pd
 
-CODIGO = Path(__file__).resolve().parent.parent
-DADOS = Path(r"C:\Users\uriel\data\analysis\remunerometro\v3\modelagem_dupla\dashboard")
+from caminhos import RAIZ_PROJETO, PASTA_DASH_LOCAL
+
+DADOS = PASTA_DASH_LOCAL
 ENTRADA = DADOS / "indicadores_teste_municipio_cbo.parquet"
-SAIDA = CODIGO / "data_public" / "indicadores_agregados.parquet"
+SAIDA = RAIZ_PROJETO / "data_public" / "indicadores_agregados.parquet"
 LIMIAR = 30
 CHAVES = ["territorio_id", "territorio_nome", "grupo_ocupacional", "cbo"]
 SOMAS = ["n", "soma_obs", "soma_prev_familias", "soma_abs_familias",

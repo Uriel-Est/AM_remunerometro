@@ -16,8 +16,9 @@ import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
 
-RAIZ = Path.cwd()
-BASE = RAIZ / 'data' / 'analysis' / 'remunerometro' / 'v3' / 'modelagem_dupla'
+from caminhos import PASTA_MODELOS
+
+BASE = PASTA_MODELOS
 ENTRADA = BASE / 'rais_2025_base_modelagem_dezembro.parquet'
 CATALOGO = BASE / 'catalogo_35_cbos_3_grupos.csv'
 SAIDA = BASE / 'auditoria_final'

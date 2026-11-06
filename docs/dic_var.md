@@ -21,7 +21,7 @@
 
 ## Arquivo público agregado
 
-O exportador `08_exportar_dados_publicos.py` produz `data_public/indicadores_agregados.parquet`, com linhas agregadas por **território × CBO** e mínimo de 30 vínculos por célula.
+O exportador `08_exportar_public_data.py` produz `data_public/indicadores_agregados.parquet`, com linhas agregadas por **território × CBO** e mínimo de 30 vínculos por célula.
 
 | Coluna | Interpretação |
 |---|---|
@@ -35,4 +35,4 @@ O exportador `08_exportar_dados_publicos.py` produz `data_public/indicadores_agr
 
 Para um grupo com `n > 0`, o MAE é `soma_abs_... / n`, a remuneração observada média é `soma_obs / n` e o RMSE log é `sqrt(soma_sqlog_... / n)`.
 
-**Importante:** esta base pública agregada não oferece o filtro de município individual; ele depende do dataset local mais detalhado. O `app.py` atual ainda não foi adaptado para publicação pública. A supressão de células com `n < 30` é uma proteção inicial, não uma garantia completa de confidencialidade ou proteção contra inferência por diferenças.
+**Importante:** esta base pública agregada não oferece o filtro de município individual; ele depende do dataset local mais detalhado. O `dashboard/app.py` público já utiliza os dados agregados em `data_public/`. A supressão de células com `n < 30` é uma proteção inicial, não uma garantia completa de confidencialidade ou proteção contra inferência por diferenças.

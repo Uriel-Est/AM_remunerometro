@@ -16,8 +16,9 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-RAIZ = Path.cwd()
-PASTA = RAIZ / 'data' / 'analysis' / 'remunerometro' / 'v3'
+from caminhos import PASTA_ANALISE
+
+PASTA = PASTA_ANALISE
 ENTRADA = PASTA / 'rais_2025_candidatos_ampliados.parquet'
 CATALOGO = PASTA / 'frequencia_cbo_2025.csv'
 SAIDA = PASTA / 'modelagem_dupla'

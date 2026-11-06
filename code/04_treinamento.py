@@ -25,10 +25,16 @@ from sklearn.model_selection import KFold, cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-RAIZ = Path.cwd()
-ENTRADA = RAIZ / 'data/analysis/remunerometro/v3/modelagem_dupla/rais_2025_base_modelagem_dezembro.parquet'
-SAIDA = RAIZ / 'data/analysis/remunerometro/v3/modelagem_dupla/treinamento'
-SEMENTE = 5327
+from caminhos import PASTA_MODELOS
+
+ENTRADA = (
+    PASTA_MODELOS
+    / "rais_2025_base_modelagem_dezembro.parquet"
+)
+
+SAIDA = PASTA_MODELOS / "treinamento"
+
+SEMENTE = 45327  # matrícula: 045327
 FRACAO_TESTE = 0.20  # CONFIRMAR com a partição do laboratório 5 antes de executar.
 N_AMOSTRA = 2_000
 DOBRAS = 5

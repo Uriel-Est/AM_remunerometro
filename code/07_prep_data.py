@@ -13,8 +13,9 @@ import pandas as pd
 from joblib import load
 from sklearn.exceptions import InconsistentVersionWarning
 
-RAIZ = Path.cwd()
-BASE_DIR = RAIZ/'data/analysis/remunerometro/v3/modelagem_dupla'
+from caminhos import PASTA_MODELOS
+
+BASE_DIR = PASTA_MODELOS
 BASE = BASE_DIR/'rais_2025_base_modelagem_dezembro.parquet'
 TREINO = BASE_DIR/'treinamento'
 GEOGRAFIA = BASE_DIR/'dashboard'

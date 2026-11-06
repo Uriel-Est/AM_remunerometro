@@ -17,9 +17,11 @@ Os demais preditores são compartilhados: UF do estabelecimento, tipologia rural
 
 ## Partição e avaliação
 
-A divisão registrada foi 80% treino e 20% teste, com semente 5327; **2.000 vínculos foram sorteados do treino** para ajuste e validação cruzada com cinco dobras. Dentro de cada especificação foram avaliados baseline, MQO, Ridge e Lasso. A seleção de hiperparâmetros ocorreu exclusivamente por validação cruzada. O teste de 234.693 vínculos foi utilizado uma única vez na etapa 05, sem novo ajuste dos modelos.
+A divisão registrada foi de 80% para treinamento e 20% para teste, com semente numérica **45327** (matrícula **045327**). Foram sorteados **2.000 vínculos apenas do treinamento** para ajuste e validação cruzada com cinco dobras. Foram comparados baseline, MQO, Ridge e Lasso, e a seleção de modelos e hiperparâmetros ocorreu pelo menor MAE médio de validação cruzada.
 
-Ambas as especificações selecionaram Lasso com `alpha=0.001`. A regra de 20% de teste precisa ser confrontada com o procedimento exato previsto no laboratório de referência, se ele exigir outra fração.
+Ambas as especificações selecionaram **Ridge com `alpha=10`**. O teste de **234.693 vínculos** foi avaliado uma vez nesta execução na etapa 05, sem reajuste dos modelos. Os MAEs finais foram R$ 4.337,18 (Famílias) e R$ 4.143,41 (35 CBOs). A semente foi corrigida para cumprir o protocolo da matrícula, e não para escolher o melhor resultado no teste.
+
+Os scripts usam `code/caminhos.py` e a variável de ambiente `REMUNEROMETRO_DATA` para acessar os dados analíticos externos ao repositório. O notebook pode reproduzir tabelas e gráficos a partir dos artefatos agregados versionados, sem depender dos microdados.
 
 ## Cartografia e interpretação
 
