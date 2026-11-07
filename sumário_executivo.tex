@@ -52,7 +52,7 @@
 \hspace{2mm}\metric{1.173.463}{vínculos elegíveis}{RAIS 2025}\hfill
 \metric{35}{CBOs selecionados}{3 grupos profissionais}\hfill
 \metric{234.693}{vínculos no teste}{20\% da população}\hfill
-\metric{R\$ 4.115}{MAE do modelo CBO}{Lasso, teste final}
+\metric{R\$ 4.143}{MAE do modelo CBO}{Ridge, teste final}
 \vspace{2.7mm}\end{minipage}}\par
 \vspace{4mm}
 \noindent{\sffamily\fontsize{8.5}{11}\selectfont\textbf{Código e documentação:} \sourceurl\quad\textbf{Painel interativo:} \dashurl}\par
@@ -123,24 +123,23 @@ O código é mantido no GitHub, enquanto a aplicação é hospedada no Streamlit
 \hspace{2mm}\metric{80\%}{parcela de treinamento}{938.770 vínculos}\hfill
 \metric{2.000}{amostra para ajuste}{extraída somente do treino}\hfill
 \metric{5}{dobras da validação}{K-Fold com embaralhamento}\hfill
-\metric{0,001}{$\alpha$ selecionado}{Lasso nas duas versões}
+\metric{10}{$\alpha$ selecionado}{Ridge nas duas versões}
 \vspace{2.5mm}\end{minipage}}\par
 \vspace{4mm}
 \begin{multicols}{2}\raggedcolumns
 \section{Partição e amostragem}
-Reservou-se uma partição de teste de \textbf{20\%}, correspondente a 234.693 vínculos. O conjunto remanescente contém 938.770 vínculos. Uma amostra aleatória de 2.000 observações foi extraída \emph{apenas} do treinamento, com semente registrada como \texttt{5327}. A fração e a semente devem ser confrontadas com as exigências exatas da atividade acadêmica.
+Reservou-se uma partição de teste de \textbf{20\%}, correspondente a 234.693 vínculos. O conjunto remanescente contém 938.770 vínculos. Uma amostra aleatória de 2.000 observações foi extraída \emph{apenas} do treinamento, com semente numérica \texttt{45327}, correspondente aos seis últimos dígitos da matrícula \texttt{045327}. A partição e a amostra são idênticas nas duas especificações.
 
 A escolha de modelos usa \textbf{validação cruzada de cinco dobras} dentro dessa amostra. O conjunto de teste não participa da escolha do algoritmo, das transformações, nem do hiperparâmetro de penalização.
 
 \section{Algoritmos comparados}
 Para as duas especificações, o script 04 compara preditor trivial (\texttt{DummyRegressor}), regressão linear por mínimos quadrados (MQO), Ridge e Lasso. O pré-processamento acompanha cada estimador ao longo da validação.
 
-No Lasso, os coeficientes são obtidos minimizando o erro quadrático com uma penalidade proporcional à soma dos valores absolutos dos coeficientes. Esquematicamente:
+O Ridge foi selecionado nas duas especificações pela validação cruzada, com $\alpha=10$. Sua penalização L2 contrai coeficientes e busca reduzir a variância da estimação:
 \[
-\hat\beta=\arg\min_\beta\left\{\frac{1}{2n}\sum_i (y_i-x_i^\top\beta)^2+\alpha\|\beta\|_1\right\}.
+\hat\beta=\arg\min_\beta\left\{\frac{1}{2n}\sum_i (y_i-x_i^\top\beta)^2+\alpha\|\beta\|_2^2\right\}.
 \]
-
-A penalização pode reduzir coeficientes e ajudar a lidar com muitos indicadores categóricos. Ela não corrige, por si só, eventuais variáveis omitidas ou diferenças estruturais entre ocupações.
+O Lasso, também avaliado, emprega penalização L1, podendo zerar coeficientes. A regularização não corrige, por si só, variáveis omitidas ou diferenças estruturais entre ocupações.
 
 \section{Critério e medidas de avaliação}
 A seleção prévia considera o \textbf{MAE em reais}, com o salário previsto obtido a partir da exponenciação da previsão em log. O RMSE na escala log é informado como métrica complementar:
@@ -154,7 +153,7 @@ Também são relatados o viés médio monetário, a razão entre número de atri
 \section{Congelamento do teste}
 Após a seleção por validação cruzada, ambos os pipelines são persistidos, e o script 05 os avalia sobre os \textbf{mesmos 234.693 vínculos de teste}, sem novos ajustes. Os resultados de teste são tratados como avaliação final, não como uma segunda rodada de escolha de hiperparâmetros.
 
-A dimensão transformada registrada foi $p=110$ (famílias) e $p=137$ (CBOs), com $n=2.000$ na amostra de ajuste. Logo, $p/n$ equivale a 5,5\% e 6,85\%, respectivamente. O maior detalhamento ocupacional aumenta a dimensão e requer cautela para categorias pouco frequentes.
+A dimensão transformada registrada foi $p=107$ (famílias) e $p=137$ (CBOs), com $n=2.000$ na amostra de ajuste. Logo, $p/n$ equivale a 5,35\% e 6,85\%, respectivamente. O maior detalhamento ocupacional aumenta a dimensão e requer cautela para categorias pouco frequentes.
 \end{multicols}
 
 \newpage
@@ -162,33 +161,33 @@ A dimensão transformada registrada foi $p=110$ (famílias) e $p=137$ (CBOs), co
 \noindent\textbf{Tabela 2 -- Validação e teste, resultados congelados}\par\vspace{2mm}
 {\small\begin{tabularx}{\linewidth}{@{}Xrr@{}}\toprule
 \textbf{Indicador} & \textbf{Três grupos} & \textbf{35 CBOs}\\\midrule
-Algoritmo selecionado & Lasso & Lasso\\
-$\alpha$ & 0,001 & 0,001\\
-MAE na validação (R\$) & 4.444,33 & 4.197,62\\
-\rowcolor{wash}MAE no teste (R\$) & 4.338,33 & \textbf{4.115,23}\\
-RMSE no teste (log) & 0,6171 & \textbf{0,5865}\\
-Remuneração média observada (R\$) & 9.230,74 & 9.230,74\\
-Remuneração média prevista (R\$) & 7.672,44 & 7.784,68\\
-Viés médio: previsto $-$ observado (R\$) & $-1.558,30$ & $-1.446,06$\\
-Atributos transformados ($p$) & 110 & 137\\\bottomrule
+Algoritmo selecionado & Ridge & Ridge\\
+$\alpha$ & 10 & 10\\
+MAE na validação (R\$) & 4.432,37 & 4.230,23\\
+\rowcolor{wash}MAE no teste (R\$) & 4.337,18 & \textbf{4.143,41}\\
+RMSE no teste (log) & 0,6173 & \textbf{0,5891}\\
+Remuneração média observada (R\$) & 9.211,01 & 9.211,01\\
+Remuneração média prevista (R\$) & 7.541,63 & 7.660,02\\
+Viés médio: previsto $-$ observado (R\$) & $-1.669,38$ & $-1.551,00$\\
+Atributos transformados ($p$) & 107 & 137\\\bottomrule
 \end{tabularx}}\par\vspace{2mm}
 \finenote{Fonte: resultados de \texttt{code/04\_treinamento.py} e \texttt{code/05\_avaliar.py}, documentados em \texttt{docs/resultados\_modelo.md}. MAE expresso em reais; RMSE calculado na escala log.}
 \vspace{4mm}
 \noindent\colorbox{wash}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep\relax}\vspace{2.7mm}
-\hspace{2mm}\metric{R\$ 223,11}{diferença de MAE}{grupos menos CBOs}\hfill
-\metric{5,14\%}{redução relativa}{no conjunto de teste}\hfill
-\metric{0,5865}{RMSE log -- CBOs}{menor que 0,6171}\hfill
-\metric{R\$ 9.231}{salário médio real}{aprox., no teste}
+\hspace{2mm}\metric{R\$ 193,77}{diferença de MAE}{grupos menos CBOs}\hfill
+\metric{4,47\%}{redução relativa}{no conjunto de teste}\hfill
+\metric{0,5891}{RMSE log -- CBOs}{menor que 0,6173}\hfill
+\metric{R\$ 9.211}{salário médio observado}{aprox., no teste}
 \vspace{2.7mm}\end{minipage}}\par
 \vspace{4mm}
 \begin{multicols}{2}\raggedcolumns
 \section{Interpretação do desempenho}
-O modelo com 35 CBOs apresenta um MAE de teste \textbf{R\$ 223,11 inferior} ao da especificação com três grupos, redução descritiva próxima de 5,14\%. O resultado favorece maior granularidade ocupacional na métrica agregada, dentro do protocolo definido anteriormente à abertura do teste.
+O modelo com 35 CBOs apresenta um MAE de teste \textbf{R\$ 193,77 inferior} ao da especificação com três grupos, redução descritiva próxima de 4,47\%. O resultado favorece maior granularidade ocupacional na métrica agregada, dentro do protocolo definido anteriormente à abertura do teste.
 
-Esse desempenho não implica superioridade do modelo por CBO em todos os segmentos. A documentação final registra, por exemplo, que a categoria de Estatística formal e quantitativas teve desempenho de MAE relativamente melhor na especificação por grupos, enquanto o resultado global favoreceu os CBOs.
+No diagnóstico por grupo ocupacional, o modelo por CBOs também apresentou menor MAE nos três grupos analisados: Estatística formal e quantitativas, TI e dados, e Expansão profissional. As diferenças continuam descritivas e não demonstram superioridade estatística universal.
 
 \section{Viés na escala monetária}
-A remuneração média observada no teste foi R\$ 9.230,74. A média prevista foi R\$ 7.672,44 no modelo por grupos e R\$ 7.784,68 no modelo por CBO. Assim, os dois apresentaram \textbf{viés negativo}, próximo de R\$ 1,6 mil e R\$ 1,4 mil, respectivamente.
+A remuneração média observada no teste foi R\$ 9.211,01. A média prevista foi R\$ 7.541,63 no modelo por grupos e R\$ 7.660,02 no modelo por CBO. Assim, os dois apresentaram \textbf{viés negativo}, de R\$ 1.669,38 e R\$ 1.551,00, respectivamente.
 
 Esse padrão é compatível com dificuldades de retransfomar previsões logarítmicas e com dispersão salarial elevada. Não se deve interpretar uma previsão pontual como salário garantido ou faixa de incerteza calibrada.
 
